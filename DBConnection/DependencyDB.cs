@@ -3,52 +3,12 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
-    public static class DependencyDB
+    public class DependencyDB
     {
-
-
-
-
-        private static AccessDB AccessDBInstance;
-        /// <summary>
-        /// Setups all neccesary Sql objects in DB. For details look to the .sql files. 
-        /// This needs to be run olny once by admin. 
-        /// Using this method in production is highly discouraged.
-        /// </summary>
-        /// <param name="connectionString"> Connection string with admin right. </param>
-        /// <param name="password"> Password used for newly created DependencyDB login. </param>
-        /// <param name="observedShema"> Shema name which can be observed by DependencyDB. </param>
-        public static void AdminInstall(string connectionString, string password, string observedShema="dbo")
-        {
-            AccessDBInstance = new AccessDB(connectionString);
-
-            string slqCommandText = string.Format(
-                File.ReadAllText(Path.Combine("DependencyDB", "AdminInstall.sql")),
-                password);
-            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
-
-            AdminInstallObservedShema(observedShema);
-        }
-
-        public static void AdminInstallObservedShema(string observedShema, bool remove = false)
-        {
-            string filename;
-            if (remove)
-                filename = "AdminRemoveObservedShema.sql";
-            else
-                filename = "AdminAddObservedShema.sql";
-            string slqCommandText = string.Format(
-                File.ReadAllText(Path.Combine("DependencyDB", filename))
-                , observedShema);
-            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
-        }
-
-
-        #region fields
+        private AccessDB AccessDBInstance;
+        
         /// <summary>
         /// DependencyDB instance to keep track of it by IRegisteredObject.
         /// </summary>
@@ -245,7 +205,7 @@ namespace StudioGambit.DBConnection
         /// Finds correct Subscription in ActiveSubscriptions and sends notification to each Subscriber.
         /// </summary>
         /// <param name="message"> Message to be handled. </param>
-        public static void HandleNotification(string message)
+        public static void HandleNotification(EventMessage message)
         {
             Subscription activeSubscription;
 

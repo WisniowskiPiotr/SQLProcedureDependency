@@ -1,21 +1,55 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
-    public static class SqlProcedures
+    public class SqlProcedures
     {
-        #region fields
-        /// <summary>
-        /// Name for casual uninstal sql procedure.
-        /// </summary>
-        private static readonly string _ListenerUninstall = "ListenerUninstall";
+        private AccessDB AccessDBInstance;
+        public SqlProcedures(string connectionString, int queryTimeout=30)
+        {
+            AccessDBInstance = new AccessDB(connectionString, queryTimeout);
+        }
+        public SqlProcedures(AccessDB accessDB)
+        {
+            AccessDBInstance = accessDB;
+        }
+
         /// <summary>
         /// Name for read notification procedure.
         /// </summary>
         private static readonly string _ListenerReceiveNotification = "ListenerReceiveNotification";
+        public List<EventMessage> GetEvent()
+        {
+            SqlCommand command = new SqlCommand(_ListenerReceiveNotification);
+            command.Parameters.Add(AccessDB.SqlParameter("AppName", SqlDbType.NVarChar, AppName));
+            command.Parameters.Add(AccessDB.SqlParameter("Lifetime", SqlDbType.Int, GetSqlNotificationTimeout()));
+            List<EventMessage> result = AccessDBInstance.SQLRunQueryProcedure<EventMessage>(command);
+
+            return result;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /// <summary>
+        /// Name for casual uninstal sql procedure.
+        /// </summary>
+        private static readonly string _ListenerUninstall = "ListenerUninstall";
+        
         /// <summary>
         /// Name for instal sql procedure.
         /// </summary>
@@ -32,8 +66,7 @@ namespace StudioGambit.DBConnection
         /// Connection string used for Listener. Additional provilages are required. For details see: DBConnection/SqlRunOnce/NotificationBroker.sql
         /// </summary>
         public static string ConnectionString = ConfigurationManager.ConnectionStrings["ListenerConnectionString"].ConnectionString;
-
-        #endregion
+        
 
         #region helper methods
         /// <summary>
@@ -106,27 +139,7 @@ namespace StudioGambit.DBConnection
             command.Parameters.Add(AccessDB.SqlParameter("ListenerAppName", SqlDbType.NVarChar, AppName));
             AccessDB.SQLRunNonQueryProcedure(command, ConnectionString);
         }
-        /// <summary>
-        /// Waits for notification to pop up in sql queue. 
-        /// </summary>
-        /// <returns> String containing notification message. </returns>
-        public static string GetEvent()
-        {
-            string tableName = "EventData";
-            SqlCommand command = new SqlCommand(_ListenerReceiveNotification);
-            command.Parameters.Add(AccessDB.SqlParameter("AppName", SqlDbType.NVarChar, AppName));
-            command.Parameters.Add(AccessDB.SqlParameter("Lifetime", SqlDbType.Int, GetSqlNotificationTimeout()));
-            DataSet result = AccessDB.SQLRunQueryProcedure(command, new string[] { tableName }, ConnectionString, int.MaxValue);
-
-            if (result != null
-                && result.Tables[tableName] != null
-                && result.Tables[tableName].Rows.Count > 0
-                && result.Tables[tableName].Rows[0][0] != null
-                && result.Tables[tableName].Rows[0][0] != DBNull.Value)
-                return result.Tables[tableName].Rows[0][0].ToString();
-            else
-                return null;
-        }
+        
         #endregion
     }
 }

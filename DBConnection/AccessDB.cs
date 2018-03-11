@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
     /// <summary>
     /// Class reprezenting generic DataBase connection.
@@ -52,22 +52,28 @@ namespace StudioGambit.DBConnection
                             object[] cells = new object[sqlDataReader.FieldCount];
                             for (int column = 0; column < sqlDataReader.FieldCount; column++)
                             {
-                                cells[column] = sqlDataReader[column];
+                                if (sqlDataReader[column] == DBNull.Value)
+                                    cells[column] = null;
+                                else
+                                    cells[column] = sqlDataReader[column];
                             }
                             collection.Add((T)Activator.CreateInstance(typeof(T), cells));
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+                    throw Helpers.ReportException(command, ex);
+                }
+                finally
+                {
                     command.Connection.Close();
                     if (disposeCommand)
                         command.Dispose();
                 }
-                catch (Exception ex)
-                {
-                     throw Helpers.ReportException(command,ex);
-                }
             }
             return collection;
-        }
+        }        
 
         /// <summary>
         /// Connects and executes sql procedure without returning a value.
@@ -83,13 +89,16 @@ namespace StudioGambit.DBConnection
                 {
                     command.Connection.Open();
                     command.ExecuteNonQuery();
-                    command.Connection.Close();
-                    if(disposeCommand)
-                        command.Dispose();
                 }
                 catch (Exception ex)
                 {
                     throw Helpers.ReportException(command, ex);
+                }
+                finally
+                {
+                    command.Connection.Close();
+                    if (disposeCommand)
+                        command.Dispose();
                 }
             }
         }
@@ -99,13 +108,12 @@ namespace StudioGambit.DBConnection
         /// </summary>
         /// <param name="command"> SqlCommand which values are to be set. </param>
         /// <param name="connection"> SqlConnection to Be set in command. </param>
-        /// <param name="timeout"> Timeout to be set to command. Defaults to ConfigurationManager.AppSettings["AccessDB_QueryTimeout"] </param>
         private void PrepareSQLCommand(SqlCommand command, SqlConnection connection)
         {
             if (command.CommandText.Trim().Contains(" "))
-                command.CommandType = CommandType.StoredProcedure;
-            else
                 command.CommandType = CommandType.Text;
+            else
+                command.CommandType = CommandType.StoredProcedure;
             command.Connection = connection;
             command.CommandTimeout = SqlQueryTimeout;
 

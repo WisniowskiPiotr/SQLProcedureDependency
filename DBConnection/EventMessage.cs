@@ -7,11 +7,16 @@ using System.Diagnostics;
 using System.IO;
 using System.Xml;
 
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
     public class EventMessage
     {
-        #region fields
+        // who - client id
+        // what - wchich procedure parameters
+        // new values
+        // old values
+
+
         /// <summary>
         /// Raw message string.
         /// </summary>
@@ -61,6 +66,11 @@ namespace StudioGambit.DBConnection
                 XmlDocument xml = new XmlDocument();
                 xml.LoadXml(MessageString);
                 return xml;
+        }
+
+        internal bool IsValid()
+        {
+            throw new NotImplementedException();
         }
         #endregion
 

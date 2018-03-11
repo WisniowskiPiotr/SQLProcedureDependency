@@ -1,55 +1,52 @@
 ﻿
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web.Hosting;
 
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
-    public class Listener : IRegisteredObject
+    internal class Listener
     {
-        #region fields
         /// <summary>
         /// CancellationTokenSource used to cancel Listener task.
         /// </summary>
-        private static CancellationTokenSource _LisenerCancellationTokenSource;
-        #endregion
+        private CancellationTokenSource _LisenerCancellationTokenSource;
 
         /// <summary>
-        /// Creates listener and starts listening.
+        /// Instance used 
         /// </summary>
-        public void Start()
+        private SqlProcedures _SqlProcedures;
+
+        /// <summary>
+        /// Returns new Listener using connectionString to connect to DB.
+        /// </summary>
+        /// <param name="connectionString"> Connection string used for connectiong to DB. </param>
+        /// <param name="sqlTimeout"> Timeout used for waiting for DependencyDB messages. </param>
+        public Listener(string connectionString, int sqlTimeout=30)
         {
-            StartListener();
+            _SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
         }
+
         /// <summary>
         /// Starts listening for notifications.
         /// </summary>
-        private void StartListener()
+        public void Start()
         {
-            StopListener();
+            Stop();
             _LisenerCancellationTokenSource = new CancellationTokenSource();
-            HostingEnvironment.RegisterObject(this);
             try
             {
-                HostingEnvironment.QueueBackgroundWorkItem((_LisenerCancellationTokenSource) => NotificationLoop());
-                //Task.Run(() => NotificationLoop(), );
+                Task.Run(() => NotificationLoop(), _LisenerCancellationTokenSource.Token);
             }
             catch (TaskCanceledException)
             { }
+        }
 
-        }
-        /// <summary>
-        /// Required by IRegisteredObject interface. 
-        /// </summary>
-        public void Stop(bool immediate = false)
-        {
-            StopListener();
-        }
         /// <summary>
         /// Stops listening for notifications. Cancels Listener task and clears sql db.
         /// </summary>
-        private void StopListener()
+        public void Stop()
         {
             if (_LisenerCancellationTokenSource != null
                 && !_LisenerCancellationTokenSource.Token.IsCancellationRequested
@@ -61,9 +58,8 @@ namespace StudioGambit.DBConnection
                 _LisenerCancellationTokenSource.Dispose();
                 _LisenerCancellationTokenSource = null;
             }
-            SqlProcedures.SqlRudeUninstal();
-            HostingEnvironment.UnregisterObject(this);
         }
+
         /// <summary>
         /// Loop for listener task.
         /// </summary>
@@ -71,13 +67,15 @@ namespace StudioGambit.DBConnection
         {
             while (IsListening())
             {
-                string message = SqlProcedures.GetEvent();
-                if (!string.IsNullOrWhiteSpace(message))
+                List<EventMessage> messages = _SqlProcedures.GetEvent();
+                foreach (EventMessage message in messages)
                 {
-                    DependencyDB.HandleNotification(message);
+                    if(message.IsValid())
+                        DependencyDB.HandleNotification(message);
                 }
             }
         }
+
         /// <summary>
         /// Checks if listener is listening.
         /// </summary>

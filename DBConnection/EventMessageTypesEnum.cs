@@ -1,5 +1,5 @@
 ﻿
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
     /// <summary>
     /// Typical EventMessageTypes set from root node from xml notification message.

@@ -3,59 +3,68 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Web;
+using System.Xml.Linq;
 
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
     public class Subscription : IEquatable<Subscription>
     {
-        #region fields
-        /// <summary>
-        /// List of subscribers to be notified.
-        /// </summary>
-        public readonly List<Subscriber> Subscribers = new List<Subscriber>();
-        /// <summary>
-        /// Notification procedure name on which data change is watched.
-        /// </summary>
-        public readonly string ProcedureName;
-        /// <summary>
-        /// SqlParameterCollection used to run notification from ProcedureName procedure.
-        /// </summary>
-        public readonly SqlParameterCollection ProcedureParameters;
-        #endregion
+        
+        string connectionString;
+        SqlCommand procedureCmd;
+        string subscriberName;
+        DateTime validTill;
 
-        /// <summary>
-        /// Basic constructor for creating Subscription object.
-        /// <param name="procedureName"> Notification procedure name on which data change is watched. </param>
-        /// <param name="procedureParameters"> SqlParameterCollection used to run notification from ProcedureName procedure. </param>
-        /// <param name="Subscriber"> Subscriber to be notified. </param>
-        /// </summary>
-        public Subscription(string procedureName, SqlParameterCollection procedureParameters, Subscriber Subscriber=null)
+        public Subscription(string connectionString, SqlCommand procedureCmd, string subscriberName, EventHandler<NotificationEventArgs> onNotification, DateTime validTill)
         {
-            if (Subscriber != null)
-            {
-                Subscribers.Add(Subscriber);
-            }
-            ProcedureName = procedureName;
-            ProcedureParameters = procedureParameters;
+            this.connectionString = connectionString;
+            this.procedureCmd = procedureCmd;
+            this.subscriberName = subscriberName;
+            this.OnNotification += onNotification;
+            this.validTill = validTill;
         }
 
-        #region Equals overide
+        public string GetConnectionString()
+        {
+            return  connectionString;
+        }
+        public SqlCommand GetSqlCommandCmd()
+        { 
+            return procedureCmd;
+        }
+        public string GetSqlCommandText()
+        {
+            return procedureCmd.CommandText;
+        }
+        public string GetSubscriberName()
+        {
+            return subscriberName;
+        }
+        public event EventHandler<NotificationEventArgs> OnNotification; 
+        public DateTime GetValidTill()
+        {
+            return validTill;
+        }
+        public string GetHashText()
+        {
+            string hash = connectionString + subscriberName + procedureCmd.CommandText;
+            foreach (SqlParameter sqlParameter in procedureCmd.Parameters)
+            {
+                hash = hash + sqlParameter.ParameterName + sqlParameter.SqlDbType.GetName() + sqlParameter.Value.ToString();
+            }
+            return hash;
+        }
+        public void InvokeNotification(NotificationEventArgs notificationEventArgs)
+        {
+            OnNotification.Invoke(this, notificationEventArgs);
+        }
+
         /// <summary>
         /// Override of standard GetHashCode().
         /// </summary>
         public override int GetHashCode()
         {
-            string hash = ProcedureName;
-            foreach (Subscriber Subscriber in Subscribers)
-            {
-                hash += Subscriber.SubscriberName;
-            }
-            foreach (SqlParameter param in ProcedureParameters)
-            {
-                hash += param.ParameterName + param.SqlDbType.ToString() + param.Value.ToString();
-            }
-            return hash.GetHashCode();
+            return this.GetHashText().GetHashCode();
         }
 
         /// <summary>
@@ -78,15 +87,15 @@ namespace StudioGambit.DBConnection
         /// <returns> Flag determining if object is Subscription for same procedureName and procedureParameters. </returns>
         public bool Equals(Subscription sub)
         {
-            if (ProcedureName != sub.ProcedureName || ProcedureParameters.Count != sub.ProcedureParameters.Count)
-                return false;
-            foreach (SqlParameter param in ProcedureParameters)
+            if (this.GetHashText() == sub.GetHashText())
             {
-                if (!sub.ProcedureParameters.Contains(param.ParameterName) || sub.ProcedureParameters[param.ParameterName].Value.ToString() != param.Value.ToString() || sub.ProcedureParameters[param.ParameterName].DbType != param.DbType)
-                    return false;
+                return true;
             }
-            return true;
+            else
+            {
+                return false;
+            }
         }
-        #endregion
+
     }
 }

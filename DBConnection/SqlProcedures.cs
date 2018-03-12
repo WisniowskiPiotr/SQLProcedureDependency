@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 
@@ -21,7 +20,7 @@ namespace DBConnection
         /// <summary>
         /// Name for read notification procedure.
         /// </summary>
-        private static readonly string _ListenerReceiveNotification = "ListenerReceiveNotification";
+        private static readonly string _ListenerReceiveNotification = "DependencyDB_Notification_Receive";
         public List<EventMessage> GetEvent()
         {
             SqlCommand command = new SqlCommand(_ListenerReceiveNotification);
@@ -31,53 +30,22 @@ namespace DBConnection
 
             return result;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
         /// <summary>
         /// Name for casual uninstal sql procedure.
         /// </summary>
-        private static readonly string _ListenerUninstall = "ListenerUninstall";
+        private static readonly string _ListenerUninstall = "DependencyDB_Notification_Uninstall";
         
         /// <summary>
         /// Name for instal sql procedure.
         /// </summary>
-        private static readonly string _ListenerInstall = "ListenerInstall";
+        private static readonly string _ListenerInstall = "DependencyDB_Notification_Install";
+
         /// <summary>
         /// Name for rude uninstal sql procedure. Procedure should be used only when running new instance of application to delete existing data.
         /// </summary>
-        private static readonly string _ListenerRudeUninstall = "ListenerRudeUninstall";
-        /// <summary>
-        /// App name used as prefix for all created sql objects.
-        /// </summary>
-        public static readonly string AppName = ConfigurationManager.AppSettings["DependencyDB_AppName"];
-        /// <summary>
-        /// Connection string used for Listener. Additional provilages are required. For details see: DBConnection/SqlRunOnce/NotificationBroker.sql
-        /// </summary>
-        public static string ConnectionString = ConfigurationManager.ConnectionStrings["ListenerConnectionString"].ConnectionString;
+        private static readonly string _ListenerRudeUninstall = "DependencyDB_Notification_Restart";
         
-
-        #region helper methods
-        /// <summary>
-        /// Returns currently set notification timeout from DependencySql in seconds.
-        /// </summary>
-        /// <returns> Returns currently set notification timeout from DependencySql in seconds. </returns>
-        public static int GetSqlNotificationTimeout()
-        {
-            int defaultnotificationTimeout = 60 * 60 * 24;
-            return Helpers.ReadConfInt(defaultnotificationTimeout, "DependencyDB_NotificationTimeout");
-        }
         /// <summary>
         /// Converts SqlParameterCollection to DataTable to be passed to db as SpParametersType.
         /// </summary>
@@ -100,7 +68,6 @@ namespace DBConnection
 
             return procedureParameters;
         }
-        #endregion
 
         #region sql
         /// <summary>

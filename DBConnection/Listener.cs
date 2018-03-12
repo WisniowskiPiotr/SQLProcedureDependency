@@ -3,11 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace DBConnection
 {
-    internal class Listener
+    public class Listener
     {
+        public delegate void HandleNotification(XDocument x);
+        private List<Subscription> Subscriptions = new List<Subscription>();
         /// <summary>
         /// CancellationTokenSource used to cancel Listener task.
         /// </summary>
@@ -16,7 +19,7 @@ namespace DBConnection
         /// <summary>
         /// Instance used 
         /// </summary>
-        private SqlProcedures _SqlProcedures;
+        private SqlProcedures SqlProcedures;
 
         /// <summary>
         /// Returns new Listener using connectionString to connect to DB.
@@ -25,7 +28,8 @@ namespace DBConnection
         /// <param name="sqlTimeout"> Timeout used for waiting for DependencyDB messages. </param>
         public Listener(string connectionString, int sqlTimeout=30)
         {
-            _SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
+            SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
+            ConnectionString = connectionString;
         }
 
         /// <summary>
@@ -67,13 +71,29 @@ namespace DBConnection
         {
             while (IsListening())
             {
-                List<EventMessage> messages = _SqlProcedures.GetEvent();
+                List<EventMessage> messages = SqlProcedures.GetEvent();
                 foreach (EventMessage message in messages)
                 {
-                    if(message.IsValid())
-                        DependencyDB.HandleNotification(message);
+                    if (message.IsValid())
+                    {
+                        List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetHashText() == message.Subscription.GetHashText());
+                        foreach (Subscription subscription in subscriptions)
+                        {
+                            subscription.InvokeNotification(message.NotificationEventArgs);
+                        }
+                    }
                 }
             }
+        }
+
+        private void RemoveOutdatedSubscriptions()
+        {
+            List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetValidTill() < DateTime.Now );
+            foreach (Subscription subscription in subscriptions)
+            {
+                SqlProcedures.SqlUninstal(subscription);
+            }
+            Subscriptions.RemoveAll(x => x.GetValidTill() < DateTime.Now);
         }
 
         /// <summary>
@@ -87,6 +107,16 @@ namespace DBConnection
                 return true;
             else
                 return false;
+        }
+
+        public string ConnectionString { get; }
+        public void AddSubscription(Subscription subscription)
+        {
+            Subscriptions.Add(subscription);
+        }
+        public void RemoveSubscription(Subscription subscription)
+        {
+            Subscriptions.RemoveAll(x => x.GetHashText() == subscription.GetHashText());
         }
     }
 }

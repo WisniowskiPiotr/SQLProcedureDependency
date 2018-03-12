@@ -3,7 +3,7 @@ using System;
 using System.Data.SqlClient;
 using System.Text;
 
-namespace StudioGambit
+namespace DBConnection
 {
     public static partial class Helpers
     {

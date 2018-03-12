@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 
-namespace StudioGambit.DBConnection
+namespace DBConnection
 {
     public static class SqlDbTypeExtensions
     {

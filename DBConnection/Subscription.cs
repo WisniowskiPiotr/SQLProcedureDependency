@@ -9,59 +9,41 @@ namespace DBConnection
 {
     public class Subscription : IEquatable<Subscription>
     {
-        
-        string connectionString;
-        SqlCommand procedureCmd;
-        string subscriberName;
-        DateTime validTill;
-
-        public Subscription(string connectionString, SqlCommand procedureCmd, string subscriberName, EventHandler<NotificationEventArgs> onNotification, DateTime validTill)
+        public enum SubscriptionType
         {
-            this.connectionString = connectionString;
-            this.procedureCmd = procedureCmd;
-            this.subscriberName = subscriberName;
-            this.OnNotification += onNotification;
-            this.validTill = validTill;
+            Auto,
+            //ForXmlType,
+            //InsertExecType,
+            //OpenRowSetType
         }
 
-        public string GetConnectionString()
+        public string SubscriberString;
+        public string ProcedureSchemaName;
+        public string ProcedureName;
+        public SqlParameterCollection ProcedureParameters;
+        public int ValidFor;
+        public SubscriptionType Type;
+
+        public Subscription( string subscriberString="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters=null, int validFor=0, SubscriptionType type = SubscriptionType.Auto)
         {
-            return  connectionString;
+            SubscriberString = subscriberString;
+            ProcedureSchemaName = procedureSchemaName;
+            ProcedureName = procedureName;
+            ProcedureParameters = procedureParameters;
+            ValidFor = validFor;
+            Type = type;
         }
-        public SqlCommand GetSqlCommandCmd()
-        { 
-            return procedureCmd;
-        }
-        public string GetSqlCommandText()
-        {
-            return procedureCmd.CommandText;
-        }
-        public string GetSubscriberName()
-        {
-            return subscriberName;
-        }
-        public event EventHandler<NotificationEventArgs> OnNotification; 
-        public DateTime GetValidTill()
-        {
-            return validTill;
-        }
+
         public string GetHashText()
         {
-            string hash = connectionString + subscriberName + procedureCmd.CommandText;
-            foreach (SqlParameter sqlParameter in procedureCmd.Parameters)
+            string hash = SubscriberString + ProcedureSchemaName + ProcedureName;
+            foreach (SqlParameter sqlParameter in ProcedureParameters)
             {
                 hash = hash + sqlParameter.ParameterName + sqlParameter.SqlDbType.GetName() + sqlParameter.Value.ToString();
             }
             return hash;
         }
-        public void InvokeNotification(NotificationEventArgs notificationEventArgs)
-        {
-            OnNotification.Invoke(this, notificationEventArgs);
-        }
 
-        /// <summary>
-        /// Override of standard GetHashCode().
-        /// </summary>
         public override int GetHashCode()
         {
             return this.GetHashText().GetHashCode();

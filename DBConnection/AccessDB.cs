@@ -18,7 +18,7 @@ namespace DBConnection
         /// Returns currently set timeout for AccessDB queries in seconds.
         /// </summary>
         public int SqlQueryTimeout;
-
+        
         /// <summary>
         /// Create obcject used to connect to DB with specified connection string.
         /// </summary>
@@ -153,14 +153,16 @@ namespace DBConnection
         /// <param name="paramType"> SqlDbType of resulting parameter. </param>
         /// <param name="value"> Value to be set. </param>
         /// <returns> Creates SqlParameter with parameterName, paramType and value set. </returns>
-        public static SqlParameter SqlParameter(string parameterName, SqlDbType paramType, object value)
+        public static SqlParameter CreateSqlParameter(string parameterName, SqlDbType paramType, object value)
         {
             if (string.IsNullOrEmpty(parameterName))
                 throw new ArgumentNullException(parameterName);
             if (parameterName[0] != '@')
                 parameterName = "@" + parameterName;
-            SqlParameter sqlParameter = new SqlParameter(parameterName, paramType);
-            sqlParameter.Value = value;
+            SqlParameter sqlParameter = new SqlParameter(parameterName, paramType)
+            {
+                Value = value
+            };
             return sqlParameter;
         }
     }

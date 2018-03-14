@@ -1,112 +1,97 @@
-﻿using System;
+﻿using Microsoft.SqlServer.Server;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
 namespace DBConnection
 {
+
     public class SqlProcedures
     {
-        private AccessDB AccessDBInstance;
-        public SqlProcedures(string connectionString, int queryTimeout=30)
+        public AccessDB AccessDBInstance { get; }
+        public string AppName { get; }
+        // max object name length is 128 ex. 'MemSourceAPI' (appName) 
+        public SqlProcedures(string appName, string connectionString, int queryTimeout=30)
         {
+            AppName = appName;
             AccessDBInstance = new AccessDB(connectionString, queryTimeout);
         }
-        public SqlProcedures(AccessDB accessDB)
+        public SqlProcedures(string appName, AccessDB accessDB)
         {
+            AppName = appName;
             AccessDBInstance = accessDB;
         }
 
-        /// <summary>
-        /// Name for read notification procedure.
-        /// </summary>
-        private static readonly string _ListenerReceiveNotification = "DependencyDB_Notification_Receive";
-        public List<EventMessage> GetEvent()
-        {
-            SqlCommand command = new SqlCommand(_ListenerReceiveNotification);
-            command.Parameters.Add(AccessDB.SqlParameter("AppName", SqlDbType.NVarChar, AppName));
-            command.Parameters.Add(AccessDB.SqlParameter("Lifetime", SqlDbType.Int, GetSqlNotificationTimeout()));
-            List<EventMessage> result = AccessDBInstance.SQLRunQueryProcedure<EventMessage>(command);
+        private static readonly string ProcedureNameReceiveNotification = "[DependencyDB].[ReceiveNotification]";
+        private static readonly string ProcedureNameUninstallAll = "[DependencyDB].[UninstallAll]";
+        private static readonly string ProcedureNameInstall = "[DependencyDB].[Install]";
+        private static readonly string ProcedureNameUninstall = "[DependencyDB].[Uninstall]";
 
+        public List<EventMessage> ReceiveNotification(int receiveTimeout=0)
+        {
+            SqlCommand command = new SqlCommand(ProcedureNameReceiveNotification);
+            command.Parameters.Add(AccessDB.CreateSqlParameter("AppName", SqlDbType.NVarChar, AppName));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ReceiveTimeout", SqlDbType.Int, receiveTimeout));
+            List<EventMessage> result = AccessDBInstance.SQLRunQueryProcedure<EventMessage>(command);
             return result;
         }
-        
-        /// <summary>
-        /// Name for casual uninstal sql procedure.
-        /// </summary>
-        private static readonly string _ListenerUninstall = "DependencyDB_Notification_Uninstall";
-        
-        /// <summary>
-        /// Name for instal sql procedure.
-        /// </summary>
-        private static readonly string _ListenerInstall = "DependencyDB_Notification_Install";
 
-        /// <summary>
-        /// Name for rude uninstal sql procedure. Procedure should be used only when running new instance of application to delete existing data.
-        /// </summary>
-        private static readonly string _ListenerRudeUninstall = "DependencyDB_Notification_Restart";
-        
+        public void SqlUninstalAll(string connectionString, int queryTimeout = 30)
+        {
+            SqlCommand command = new SqlCommand(ProcedureNameUninstallAll);
+            command.Parameters.Add(AccessDB.CreateSqlParameter("AppName", SqlDbType.NVarChar, AppName));
+            new AccessDB(connectionString, queryTimeout).SQLRunNonQueryProcedure(command);
+        }
+
+        public void SqlInstal(Subscription subscription)
+        {
+            SqlCommand command = new SqlCommand(ProcedureNameReceiveNotification);
+            command.Parameters.Add(AccessDB.CreateSqlParameter("AppName", SqlDbType.NVarChar, AppName));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("SubscriberString", SqlDbType.NVarChar, subscription.SubscriberString));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ProcedureSchemaName", SqlDbType.NVarChar, subscription.ProcedureSchemaName));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ProcedureName", SqlDbType.NVarChar, subscription.ProcedureName));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ProcedureParameters", SqlDbType.Structured, SqlParameterCollectionToDataTable(subscription.ProcedureParameters)));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ValidFor", SqlDbType.Int, subscription.ValidFor));
+            AccessDBInstance.SQLRunNonQueryProcedure(command);
+        }
+
+        public void SqlUnInstal(Subscription subscription)
+        {
+            SqlCommand command = new SqlCommand(ProcedureNameReceiveNotification);
+            command.Parameters.Add(AccessDB.CreateSqlParameter("AppName", SqlDbType.NVarChar, AppName));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("SubscriberString", SqlDbType.NVarChar, subscription.SubscriberString));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ProcedureSchemaName", SqlDbType.NVarChar, subscription.ProcedureSchemaName));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ProcedureName", SqlDbType.NVarChar, subscription.ProcedureName));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("ProcedureParameters", SqlDbType.Structured, SqlParameterCollectionToDataTable(subscription.ProcedureParameters)));
+            AccessDBInstance.SQLRunNonQueryProcedure(command);
+        }
+
         /// <summary>
         /// Converts SqlParameterCollection to DataTable to be passed to db as SpParametersType.
         /// </summary>
         /// <param name="comandParameters"> SqlParameterCollection to be converted. </param>
         /// <returns> DataTable containing all neccesary comandParameters informations. </returns>
-        private static DataTable SqlParameterCollectionToDataTable(SqlParameterCollection comandParameters)
+        private static List<SqlDataRecord> SqlParameterCollectionToDataTable(SqlParameterCollection comandParameters)
         {
-            DataTable procedureParameters = new DataTable();
-            procedureParameters.Columns.Add("PName", Type.GetType("System.String"));
-            procedureParameters.Columns.Add("PType", Type.GetType("System.String"));
-            procedureParameters.Columns.Add("PValue", Type.GetType("System.String"));
+            List<SqlDataRecord> procedureParameters = new List<SqlDataRecord>();
+            SqlMetaData pName = new SqlMetaData("PName", SqlDbType.NVarChar);
+            SqlMetaData pType = new SqlMetaData("PType", SqlDbType.NVarChar);
+            SqlMetaData pValue = new SqlMetaData("PValue", SqlDbType.NVarChar);
 
             foreach (SqlParameter sqlParam in comandParameters)
             {
                 string paramName = sqlParam.ParameterName;
                 string paramType = sqlParam.SqlDbType.GetName();
                 string paramValue = sqlParam.Value.ToString();
-                procedureParameters.Rows.Add(paramName, paramType, paramValue);
+                SqlDataRecord sqlDataRecord = new SqlDataRecord(new[] { pName, pType, pValue });
+                sqlDataRecord.SetString(0, paramName);
+                sqlDataRecord.SetString(1, paramType);
+                sqlDataRecord.SetString(2, paramValue);
+                procedureParameters.Add(sqlDataRecord);
             }
 
             return procedureParameters;
         }
-
-        #region sql
-        /// <summary>
-        /// Runs _ListenerInstall procedure for creating all neccesary sql objects.
-        /// </summary>
-        /// <param name="procedureName"> Notification procedure name. </param>
-        /// <param name="procedureParameters"> SqlParameterCollection containing all necesary SqlParameters for Notification procedure. </param>
-        public static void SqlInstal(string procedureName, SqlParameterCollection procedureparameters)
-        {
-            SqlCommand command = new SqlCommand(_ListenerInstall);
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerAppName", SqlDbType.NVarChar, AppName));
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerProcedureName", SqlDbType.NVarChar, procedureName));
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerSParameters", SqlDbType.Structured, SqlParameterCollectionToDataTable(procedureparameters)));
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerLifetime", SqlDbType.NVarChar, GetSqlNotificationTimeout()));
-            AccessDB.SQLRunNonQueryProcedure(command, ConnectionString);
-        }
-        /// <summary>
-        /// Runs _ListenerUninstall procedure for deleting all sql objects.
-        /// </summary>
-        /// <param name="procedureName"> Notification procedure name. </param>
-        /// <param name="procedureParameters"> SqlParameterCollection containing all necesary SqlParameters for Notification procedure. </param>
-        public static void SqlUninstal(string procedureName, SqlParameterCollection procedureparameters)
-        {
-            SqlCommand command = new SqlCommand(_ListenerUninstall);
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerAppName", SqlDbType.NVarChar, AppName));
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerProcedureName", SqlDbType.NVarChar, procedureName));
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerSParameters", SqlDbType.Structured, SqlParameterCollectionToDataTable(procedureparameters)));
-            AccessDB.SQLRunNonQueryProcedure(command, ConnectionString);
-        }
-        /// <summary>
-        /// Runs _ListenerRudeUninstall procedure for deleting all sql objects.
-        /// </summary>
-        public static void SqlRudeUninstal()
-        {
-            SqlCommand command = new SqlCommand(_ListenerRudeUninstall);
-            command.Parameters.Add(AccessDB.SqlParameter("ListenerAppName", SqlDbType.NVarChar, AppName));
-            AccessDB.SQLRunNonQueryProcedure(command, ConnectionString);
-        }
-        
-        #endregion
     }
 }

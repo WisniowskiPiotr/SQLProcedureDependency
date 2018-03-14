@@ -28,8 +28,8 @@ namespace DBConnection
         /// <param name="sqlTimeout"> Timeout used for waiting for DependencyDB messages. </param>
         public Listener(string connectionString, int sqlTimeout=30)
         {
-            SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
-            ConnectionString = connectionString;
+            //SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
+            //ConnectionString = connectionString;
         }
 
         /// <summary>
@@ -69,31 +69,31 @@ namespace DBConnection
         /// </summary>
         private void NotificationLoop()
         {
-            while (IsListening())
-            {
-                List<EventMessage> messages = SqlProcedures.GetEvent();
-                foreach (EventMessage message in messages)
-                {
-                    if (message.IsValid())
-                    {
-                        List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetHashText() == message.Subscription.GetHashText());
-                        foreach (Subscription subscription in subscriptions)
-                        {
-                            subscription.InvokeNotification(message.NotificationEventArgs);
-                        }
-                    }
-                }
-            }
+            //while (IsListening())
+            //{
+            //    List<EventMessage> messages = SqlProcedures.ReceiveNotification();
+            //    foreach (EventMessage message in messages)
+            //    {
+            //        if (message.IsValid())
+            //        {
+            //            List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetHashText() == message.Subscription.GetHashText());
+            //            foreach (Subscription subscription in subscriptions)
+            //            {
+            //                subscription.InvokeNotification(message.NotificationEventArgs);
+            //            }
+            //        }
+            //    }
+            //}
         }
 
         private void RemoveOutdatedSubscriptions()
         {
-            List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetValidTill() < DateTime.Now );
-            foreach (Subscription subscription in subscriptions)
-            {
-                SqlProcedures.SqlUninstal(subscription);
-            }
-            Subscriptions.RemoveAll(x => x.GetValidTill() < DateTime.Now);
+            //List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetValidTill() < DateTime.Now );
+            //foreach (Subscription subscription in subscriptions)
+            //{
+            //    SqlProcedures.SqlUninstal(subscription);
+            //}
+            //Subscriptions.RemoveAll(x => x.GetValidTill() < DateTime.Now);
         }
 
         /// <summary>

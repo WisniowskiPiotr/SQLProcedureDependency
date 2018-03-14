@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DBConnection.Properties;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
@@ -12,7 +13,7 @@ namespace DBConnection
     /// </summary>
     public class AdminDependencyDB
     {
-        private AccessDB AccessDBInstance;
+        public AccessDB AccessDBInstance { get; }
 
         /// <summary>
         /// Create AdminDependencyDB which allows manipulation on DependencyDB Admin provilages.
@@ -33,13 +34,14 @@ namespace DBConnection
         public void AdminInstall( string password, string observedShema="dbo")
         {
             string slqCommandText = string.Format(
-                File.ReadAllText(Path.Combine("DependencyDB", "AdminInstall.sql")),
+                Resources.AdminInstall,
                 password);
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             AdminInstallObservedShema(observedShema);
         }
+
         /// <summary>
         /// Allows or denies DependencyDB to observe data from diffrent shema. For details look to the AdminAddObservedShema.sql or AdminRemoveObservedShema.sql file.
         /// </summary>
@@ -47,24 +49,26 @@ namespace DBConnection
         /// <param name="allow"> If true grants provilages. Othervise revoke provilages. </param>
         public void AdminInstallObservedShema(string observedShema, bool allow = true)
         {
-            string filename;
+            string file;
             if (allow)
-                filename = "AdminAddObservedShema.sql";
+                file = Resources.AdminAddObservedShema;
             else
-                filename = "AdminRemoveObservedShema.sql";
+                file = Resources.AdminRemoveObservedShema;
             string slqCommandText = string.Format(
-                File.ReadAllText(Path.Combine("DependencyDB", filename))
+                file
                 , observedShema);
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }
 
         /// <summary>
-        /// Removes all objects created by AdminInstall method with exception of AutoCreatedLocal route and disabling brooker setting as other things may depend on it.
+        /// Removes all objects created by AdminInstall method and DependencyDB with exception of AutoCreatedLocal route and disabling brooker setting as other things may depend on it.
         /// </summary>
         public void AdminUnInstall()
         {
-            string slqCommandText = File.ReadAllText(Path.Combine("DependencyDB", "AdminUnInstall.sql"));
+            DependencyDB.StopListener(AccessDBInstance.ConnectionString);
+            //DependencyDB.UnSubscribeAll(AccessDBInstance.ConnectionString);
+            string slqCommandText = Resources.AdminUnInstall;
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }

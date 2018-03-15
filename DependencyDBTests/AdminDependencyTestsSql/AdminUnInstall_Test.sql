@@ -4,31 +4,26 @@ SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
 
 -- Drop Type
-IF EXISTS (
+IF NOT EXISTS (
 		SELECT name 
 		FROM sys.types 
 		WHERE 
 			is_table_type = 1 AND 
 			name = 'SpParametersType')
 	AND
-	EXISTS (
-		SELECT name
-		FROM sys.routes
-		WHERE name = 'AutoCreatedLocal')
-	AND
-	EXISTS (
+	NOT EXISTS (
 		SELECT name
 		FROM sys.database_principals
 		WHERE 
 			name = @V_MainName AND
 			type = 'S')
 	AND 
-	EXISTS (
+	NOT EXISTS (
 		SELECT name  
 		FROM sys.schemas
 		WHERE name = @V_MainName)
 	AND
-	EXISTS (
+	NOT EXISTS (
 		SELECT name 
 		FROM master.sys.server_principals
 		WHERE name = @V_MainName)

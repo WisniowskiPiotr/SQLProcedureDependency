@@ -12,28 +12,29 @@ namespace DBConnectionTests
     public class AdminDependencyTests
     {
         AdminDependencyDB AdminDependencyDBInstance = new AdminDependencyDB(CommonTestsValues.AdminConnectionString);
+        string MainServiceName = "DependencyDB";
+        string InstallPass = "testPass";
 
         [TestMethod]
         public void AdminInstall()
         {
-            string mainServiceName = "DependencyDB";
             string slqCommandText;
             SqlCommand sqlCommand;
             // CleanUp DB
             slqCommandText = string.Format(
                 Resources.AdminInstall_Cleanup,
-                mainServiceName
+                MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             AdminDependencyDBInstance.AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             // Try install
-            AdminDependencyDBInstance.AdminInstall("testPass", mainServiceName);
+            AdminDependencyDBInstance.AdminInstall(InstallPass, MainServiceName);
 
             // Test install
             slqCommandText = string.Format(
                 Resources.AdminInstall_Test,
-                mainServiceName
+                MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
@@ -43,12 +44,12 @@ namespace DBConnectionTests
             }
 
             // try instal with existing objects
-            AdminDependencyDBInstance.AdminInstall("testPass", mainServiceName);
+            AdminDependencyDBInstance.AdminInstall(InstallPass, MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(
                 Resources.AdminInstall_Test,
-                mainServiceName
+                MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult2 = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
@@ -61,17 +62,63 @@ namespace DBConnectionTests
         [TestMethod]
         public void AdminInstallObservedShema()
         {
-            string mainServiceName = "DependencyDB";
             string slqCommandText;
             SqlCommand sqlCommand;
+            AccessDB serviceAccessDB = new AccessDB(CommonTestsValues.ServiceConnectionString);
 
             // Try
-            AdminDependencyDBInstance.AdminInstallObservedShema("dbo", mainServiceName,false);
+            AdminDependencyDBInstance.AdminInstallObservedShema("dbo", MainServiceName, false);
 
             // Test
             slqCommandText = string.Format(
-                Resources.AdminInstall_Test,
-                mainServiceName
+                Resources.AdminInstallObservedShema_Test,
+                MainServiceName
+                );
+            sqlCommand = new SqlCommand(slqCommandText);
+            try
+            {
+                List<Tuple<int>> testResult = serviceAccessDB.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
+                if (testResult.Count != 1 && testResult[0].Item1 != 0)
+                {
+                    Assert.Fail();
+                }
+            }
+            catch (Exception ex)
+            {
+                if(!ex.InnerException.Message.Contains("SELECT permission was denied on the object 'testTable'"))
+                    Assert.Fail();
+            }
+
+            // Try
+            AdminDependencyDBInstance.AdminInstallObservedShema("dbo", MainServiceName);
+
+            // Test
+            slqCommandText = string.Format(
+                Resources.AdminInstallObservedShema_Test,
+                MainServiceName
+                );
+            sqlCommand = new SqlCommand(slqCommandText);
+            List<Tuple<int>> testResult2 = serviceAccessDB.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
+            if (testResult2.Count != 1 && testResult2[0].Item1 != 1)
+            {
+                Assert.Fail();
+            }
+
+        }
+
+        [TestMethod]
+        public void AdminUnInstall()
+        {
+            string slqCommandText;
+            SqlCommand sqlCommand;
+            
+            // Try install
+            AdminDependencyDBInstance.AdminUnInstall(MainServiceName);
+
+            // Test install
+            slqCommandText = string.Format(
+                Resources.AdminUnInstall_Test,
+                MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
@@ -80,13 +127,13 @@ namespace DBConnectionTests
                 Assert.Fail();
             }
 
-            // try instal with existing objects
-            AdminDependencyDBInstance.AdminInstall("testPass", mainServiceName);
+            // try instal again
+            AdminDependencyDBInstance.AdminInstall(InstallPass, MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(
                 Resources.AdminInstall_Test,
-                mainServiceName
+                MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult2 = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);

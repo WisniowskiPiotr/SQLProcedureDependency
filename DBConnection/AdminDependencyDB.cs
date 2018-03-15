@@ -66,11 +66,12 @@ namespace DBConnection
         /// <summary>
         /// Removes all objects created by AdminInstall method and DependencyDB with exception of AutoCreatedLocal route and disabling brooker setting as other things may depend on it.
         /// </summary>
-        public void AdminUnInstall()
+        public void AdminUnInstall(string mainServiceName)
         {
-            DependencyDB.StopListener(AccessDBInstance.ConnectionString);
-            //DependencyDB.UnSubscribeAll(AccessDBInstance.ConnectionString);
-            string slqCommandText = Resources.AdminUnInstall;
+            string slqCommandText = string.Format(
+                Resources.AdminUnInstall,
+                mainServiceName
+                );
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }

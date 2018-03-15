@@ -2,7 +2,6 @@ USE [sgdb]
 GO
 /****** Object:  StoredProcedure [NotificationBroker].[ListenerInstall]    Script Date: 2018-01-02 13:23:02 ******/
 SET ANSI_NULLS ON
-GO
 SET QUOTED_IDENTIFIER ON
 GO
 

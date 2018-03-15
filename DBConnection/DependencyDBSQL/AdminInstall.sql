@@ -1,5 +1,7 @@
 DECLARE @V_MainName sysname = '{0}';
 DECLARE @V_Cmd nvarchar(max);
+SET ANSI_NULLS ON
+SET QUOTED_IDENTIFIER ON
 
 -- Create or ReCreate DependencyDB login
 BEGIN TRANSACTION
@@ -60,7 +62,7 @@ IF NOT EXISTS (
 		CREATE ROUTE [AutoCreatedLocal] WITH ADDRESS = N'LOCAL';
 	END
 
--- Create UserDefined type required by DependencyDb
+-- Create SpParametersType
 IF NOT EXISTS (
 	SELECT name 
 	FROM sys.types 

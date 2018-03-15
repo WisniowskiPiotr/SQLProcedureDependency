@@ -158,5 +158,42 @@ namespace DBConnectionTests.Properties {
                 return ResourceManager.GetString("AdminInstallObservedShema_Test", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;{0}&apos;
+        ///DECLARE @V_Cmd nvarchar(max)
+        ///
+        ///-- Drop Type
+        ///IF NOT EXISTS (
+        ///		SELECT name 
+        ///		FROM sys.types 
+        ///		WHERE 
+        ///			is_table_type = 1 AND 
+        ///			name = &apos;SpParametersType&apos;)
+        ///	AND
+        ///	NOT EXISTS (
+        ///		SELECT name
+        ///		FROM sys.routes
+        ///		WHERE name = &apos;AutoCreatedLocal&apos;)
+        ///	AND
+        ///	NOT EXISTS (
+        ///		SELECT name
+        ///		FROM sys.database_principals
+        ///		WHERE 
+        ///			name = @V_MainName AND
+        ///			type = &apos;S&apos;)
+        ///	AND 
+        ///	NOT EXISTS (
+        ///		SELECT name  
+        ///		FROM sys.schemas
+        ///		WHERE name = @V_MainName)
+        ///	AND
+        ///	NO [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string AdminUnInstall_Test {
+            get {
+                return ResourceManager.GetString("AdminUnInstall_Test", resourceCulture);
+            }
+        }
     }
 }

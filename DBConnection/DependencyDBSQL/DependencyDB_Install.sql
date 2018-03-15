@@ -1,44 +1,21 @@
-USE [sgdb]
-GO
-/****** Object:  StoredProcedure [NotificationBroker].[ListenerInstall]    Script Date: 2018-03-14 15:07:24 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-ALTER PROCEDURE [DependencyDB].[Install]
-	@AppName NVARCHAR(110), -- max object name length is 128 ex. 'MemSourceAPI'
-	@SubscriberString NVARCHAR(128), -- ex. 'A_JobPart_Select'
-	@ProcedureSchemaName NVARCHAR(128),
-	@ProcedureName NVARCHAR(128),
-	@ProcedureParameters dbo.SpParametersType READONLY, -- ex. 'dbo'
-	@ValidFor int
+CREATE PROCEDURE [DependencyDB].[Install]
+	@V_SubscriberString NVARCHAR(200),
+	@V_SubscriptionHash INT,
+	@V_ProcedureSchemaName SYSNAME,
+	@V_ProcedureName SYSNAME,
+	@TBL_ProcedureParameters dbo.TYPE_ParametersType READONLY,
+	@V_ValidFor INT
 AS
 BEGIN
-	-- Important! Run before creating procedure
-	--CREATE TYPE dbo.SpParametersType AS TABLE   
-	--( PName NVARCHAR(100),
-	--  Ptype  NVARCHAR(20),
-	--  PValue NVARCHAR(100));  
-	--GO  
-	--GRANT EXECUTE ON TYPE::dbo.SpParametersType TO NotificationBroker
-	--GO
 
-	IF @ListenerProcedureSchema is null
-		SET @ListenerProcedureSchema = SCHEMA_NAME()
-	DECLARE @ListenerQueue NVARCHAR(128)
-	SET @ListenerQueue = N'ListenerQueue_' + @ListenerAppName
-	DECLARE @ListenerService NVARCHAR(128)
-	SET @ListenerService = N'ListenerService_' + @ListenerAppName
+	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_Cmd NVARCHAR(max);
 
-	DECLARE @ListenerProcedureParametersString NVARCHAR(110)
-	SET @ListenerProcedureParametersString = ISNULL(
-			(SELECT '_' + PValue
-			FROM @ListenerSParameters 
-			FOR XML PATH(''))
-		,'')
-
-	DECLARE @ListenerProcedureParametersDeclaration NVARCHAR(max)
-	SET @ListenerProcedureParametersDeclaration = ISNULL(
+	DECLARE @V_Service SYSNAME ;
+	SET @V_Service = 'Service_' + @V_MainName ;
+	
+	DECLARE @V_ProcedureParametersDeclaration NVARCHAR(max) ;
+	SET @V_ProcedureParametersDeclaration = ISNULL(
 			(SELECT 'DECLARE ' + CASE 
 				WHEN SUBSTRING(PName,1,1) !='@'
 				THEN '@'
@@ -51,247 +28,164 @@ BEGIN
 				WHEN CHARINDEX('CHAR', PType) != 0
 				THEN CHAR(39)
 				ELSE ''
-				END + ' ' -- + CHAR(13)
-			FROM @ListenerSParameters 
+				END + ' '  + CHAR(13) + CHAR(10)
+			FROM @TBL_ProcedureParameters 
 			FOR XML PATH(''))
-		,'')
+		,'') ;
 
-	DECLARE @ListenerProcedureParametersXlm NVARCHAR(max) 
-	SET @ListenerProcedureParametersXlm = N'<' + @ListenerProcedureName + N'>' + ISNULL(
+	DECLARE @V_ProcedureParametersXlm NVARCHAR(max)  ;
+	SET @V_ProcedureParametersXlm = '<' + @V_ProcedureSchemaName + '>'+ '<' + @V_ProcedureName + '>' + ISNULL(
 		(SELECT 
 				PName as name,
 				PType as type,
 				PValue as value
-			FROM @ListenerSParameters 
-			FOR XML PATH(N'parameter'))
-		,'') + N'</' + @ListenerProcedureName + N'>'
-
-	-- start transaction
-	--BEGIN TRANSACTION 
+			FROM @TBL_ProcedureParameters 
+			FOR XML PATH('parameter'))
+		,'') + '</' + @V_ProcedureName + '>' + '</' + @V_ProcedureSchemaName + '>' ;
 	
-	DECLARE @Listenercmd NVARCHAR(MAX)
-    -- Create a queue which will hold the tracked information 
-    IF NOT EXISTS (
-		SELECT name
-			FROM sys.service_queues 
-			WHERE name = @ListenerQueue
-	)
-		BEGIN
-			SET @Listenercmd = null
-			SET @Listenercmd = N'
-			CREATE QUEUE [' + @ListenerProcedureSchema + N'].[' + @ListenerQueue + N'] 
-			'
-			EXEC sp_executesql @Listenercmd
-		END
 
-    -- Create a service on which tracked information will be sent 
-    IF NOT EXISTS(
-		SELECT name
-			FROM sys.services 
-			WHERE name = @ListenerService
-	)
-		BEGIN
-			SET @Listenercmd = null
-			SET @Listenercmd = N'
-			CREATE SERVICE [' + @ListenerService + N'] 
-			ON QUEUE [' + @ListenerProcedureSchema + N'].[' + @ListenerQueue + N'] 
-			([DEFAULT]) 
-			'
-			EXEC sp_executesql @Listenercmd
-		END
-
-	-- get procedure
-	DECLARE @ListenerProcedureText NVARCHAR(max)
-	SELECT @ListenerProcedureText=ROUTINE_DEFINITION
+	-- get procedure text
+	DECLARE @V_ProcedureText NVARCHAR(max) ;
+	SELECT @V_ProcedureText = ROUTINE_DEFINITION
 		FROM INFORMATION_SCHEMA.ROUTINES 
-		WHERE ROUTINE_NAME = @ListenerProcedureName
-		AND ROUTINE_SCHEMA = @ListenerProcedureSchema
-		AND ROUTINE_TYPE=N'PROCEDURE'
+		WHERE ROUTINE_NAME = @V_ProcedureName
+		AND ROUTINE_SCHEMA = @V_ProcedureSchemaName
+		AND ROUTINE_TYPE = 'PROCEDURE' ;
 
-	-- get rid of BEGINING and END from procedure
-	SET @ListenerProcedureText = SUBSTRING(@ListenerProcedureText, CHARINDEX(N'BEGIN', @ListenerProcedureText) + 5, ((LEN(@ListenerProcedureText) - (CHARINDEX(N'DNE',REVERSE(@ListenerProcedureText)) + 2)) - (CHARINDEX(N'BEGIN', @ListenerProcedureText) + 4)))
+	-- get rid of BEGIN and END from procedure
+	-- TODO: is this neccesary?
+	SET @V_ProcedureText = SUBSTRING( @V_ProcedureText , CHARINDEX( 'BEGIN' , @V_ProcedureText) + 5, ( ( LEN( @V_ProcedureText ) - ( CHARINDEX( 'DNE' , REVERSE( @V_ProcedureText ) ) + 2) ) - ( CHARINDEX( 'BEGIN', @V_ProcedureText ) + 4) ) ) ;
 
 	-- get tables used in procedure
-	DECLARE @ListenerTables TABLE ([name] NVARCHAR(128))
-	INSERT INTO @ListenerTables
+	DECLARE @TBL_ReferencedTables TABLE (
+		[name] SYSNAME
+	) ;
+	INSERT INTO @TBL_ReferencedTables
 		SELECT 
-				referenced_schema_name + '.' +  referenced_entity_name
-			FROM sys.dm_sql_referenced_entities (@ListenerProcedureSchema + '.' + @ListenerProcedureName,'OBJECT')
-			WHERE referenced_minor_id = 0
+				quotename( referenced_schema_name ) + '.' + quotename( referenced_entity_name )
+			FROM sys.dm_sql_referenced_entities ( @V_ProcedureSchemaName + '.' + @V_ProcedureName , 'OBJECT' )
+			WHERE referenced_minor_id = 0 ;
 
 	-- for each affected table
-	DECLARE @Listenertable NVARCHAR(128)
-	DECLARE ListenertableCursor CURSOR FOR
+	DECLARE @V_ReferencedTable SYSNAME ;
+	DECLARE ReferencedTablesCursor CURSOR FOR
 		SELECT [name]
-			FROM @ListenerTables
-	OPEN ListenertableCursor
-	FETCH NEXT FROM ListenertableCursor INTO @Listenertable
+			FROM @TBL_ReferencedTables ;
+	OPEN ReferencedTablesCursor ;
+	FETCH NEXT FROM ReferencedTablesCursor INTO @V_ReferencedTable ;
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 		
-			DECLARE @ListenerTriger NVARCHAR(128)
-			SET @ListenerTriger = @ListenerAppName + N'_' + REPLACE(@Listenertable, N'.', N'_') + N'_' + @ListenerProcedureName + N'_' +  @ListenerProcedureParametersString 
+			DECLARE @V_TrigerName NVARCHAR(128) ;
+			SET @V_TrigerName = @V_MainName + '_' + REPLACE(@V_ReferencedTable, '.', '_') + '_' + @V_SubscriptionHash ;
 			
-			BEGIN TRANSACTION 
-			-- lock table
-			SET @Listenercmd = N'
-				SELECT TOP 1 
-						1 
-					FROM ' + @Listenertable + N'
-					WITH (UPDLOCK, TABLOCKX, HOLDLOCK) 
-				'
-			EXEC sp_executesql @Listenercmd
-
-			-- Notification Trigger check statement.
-			DECLARE @ListenerTrigerBody NVARCHAR(max)
-			SET @ListenerTrigerBody = N'
-				ON ' + @Listenertable + N' 
-				WITH EXECUTE AS ''' + USER_NAME() + N'''
-				AFTER ' + @ListenerNotyfyMode + N' 
+			-- Trigger statement.
+			DECLARE @V_TrigerBody NVARCHAR(max)
+			SET @V_TrigerBody = '
+				ON ' + quotename( @V_ReferencedTable ) + ' 
+				WITH EXECUTE AS ''' + USER_NAME() + '''
+				AFTER INSERT, UPDATE, DELETE
 				AS 
 				BEGIN
 					SET NOCOUNT ON; 
 
-					IF ( EXISTS (
-							SELECT name
-								FROM sys.services 
-								WHERE name = ''' + @ListenerService + N''' 
-							) 
-						)
-						BEGIN
-							DECLARE @message NVARCHAR(MAX)
-							DECLARE @messageInserted NVARCHAR(MAX)
-							DECLARE @messageParameters NVARCHAR(MAX)
-							DECLARE @messageDeleted NVARCHAR(MAX)
-							DECLARE @retvalOUT NVARCHAR(MAX)
-							' + @ListenerProcedureParametersDeclaration + N'
+					DECLARE @V_Message NVARCHAR(MAX)
+					DECLARE @V_MessageInserted NVARCHAR(MAX)
+					DECLARE @V_MessageParameters NVARCHAR(MAX)
+					DECLARE @V_MessageDeleted NVARCHAR(MAX)
+					DECLARE @V_retvalOUT NVARCHAR(MAX)
+					' + @V_ProcedureParametersDeclaration + '
 									
-							-- inner procedure
-							-- inserted rows
-							IF EXISTS (
-								SELECT * 
-									FROM INSERTED
-							)
-								SET @retvalOUT = (
-								-- start inner procedure
-								'+ REPLACE(@ListenerProcedureText, @Listenertable, N'INSERTED') + N'
-								-- end inner procedure
-								)
-							IF (@retvalOUT IS NOT NULL)
-								SET @messageInserted = N''<inserted>'' + @retvalOUT + N''</inserted>''
+					-- inner procedure
+					-- inserted rows
+					IF EXISTS (
+						SELECT * 
+							FROM INSERTED
+					)
+						SET @V_retvalOUT = (
+						-- start inner procedure
+						' + REPLACE( @V_ProcedureText, @V_ReferencedTable, 'INSERTED') + '
+						-- end inner procedure
+						)
+					IF (@V_retvalOUT IS NOT NULL)
+						SET @V_MessageInserted = ''<inserted>'' + @V_retvalOUT + ''</inserted>''
 
-							-- deleted rows
-							IF EXISTS (
-								SELECT * 
-									FROM DELETED
-							)
-								SET @retvalOUT = (
-								-- start inner procedure
-								'+ REPLACE(@ListenerProcedureText, @Listenertable, N'DELETED') + N'
-								-- end inner procedure
-								)
-							IF (@retvalOUT IS NOT NULL)
-								SET @messageDeleted = N''<deleted>'' + @retvalOUT + N''</deleted>''
+					-- deleted rows
+					IF EXISTS (
+						SELECT * 
+							FROM DELETED
+					)
+						SET @V_retvalOUT = (
+						-- start inner procedure
+						' + REPLACE( @V_ProcedureText, @V_ReferencedTable, 'DELETED') + '
+						-- end inner procedure
+						)
+					IF (@V_retvalOUT IS NOT NULL)
+						SET @V_MessageDeleted = ''<deleted>'' + @V_retvalOUT + ''</deleted>''
 
-							-- IF no changes return
-							IF @messageInserted IS NOT NULL 
-								OR @messageDeleted IS NOT NULL
-								BEGIN
-									-- create final message
-									SET @message = N''<Notification>''
-									SET @message = @message + ''' + @ListenerProcedureParametersXlm + N'''
-									IF @messageInserted is not null
-										SET @message = @message + @messageInserted
-									IF @messageDeleted is not null
-										SET @message = @message + @messageDeleted
-									SET @message = @message + N''</Notification>''
-
-									--Beginning of dialog...
-                					DECLARE @ConvHandle UNIQUEIDENTIFIER
-                					--Determine the Initiator Service, Target Service and the Contract 
-                					BEGIN DIALOG @ConvHandle 
-										FROM SERVICE ' + @ListenerService + N' 
-										TO SERVICE ''' + @ListenerService + N''' 
-										ON CONTRACT [DEFAULT] 
-										WITH ENCRYPTION = OFF, 
-										LIFETIME = ' + CAST(@ListenerLifetime as nvarchar(200)) + N'; 
-									--Send the Message
-									SEND ON CONVERSATION @ConvHandle 
-										MESSAGE TYPE [DEFAULT] (@message);
-									--End conversation
-									END CONVERSATION @ConvHandle;
-								END
-
-							IF (GETDATE()> ''' + CAST(DATEADD(S , @ListenerLifetime , GETDATE()) as nvarchar(200)) + N''')
-								BEGIN
-									DECLARE @messageOutdated NVARCHAR(MAX)
-									SET @messageOutdated = N''<OutdatedNotification>''
-									SET @messageOutdated = @messageOutdated + ''' + @ListenerProcedureParametersXlm + '''
-									SET @messageOutdated = @messageOutdated + N''</OutdatedNotification>''
-									DECLARE @ConvHandleOutdated UNIQUEIDENTIFIER
-									--Determine the Initiator Service, Target Service and the Contract 
-									BEGIN DIALOG @ConvHandleOutdated 
-										FROM SERVICE ' + @ListenerService + N' 
-										TO SERVICE ''' + @ListenerService + N''' 
-										ON CONTRACT [DEFAULT] 
-										WITH ENCRYPTION = OFF;
-									--Send the Message
-									SEND ON CONVERSATION @ConvHandleOutdated 
-										MESSAGE TYPE [DEFAULT] (@messageOutdated);
-									--End conversation
-									END CONVERSATION @ConvHandleOutdated;
-								END
-						END
-					ELSE
+					-- IF no changes return
+					IF @V_MessageInserted IS NOT NULL 
+						OR @V_MessageDeleted IS NOT NULL
 						BEGIN
-							DECLARE @SParameters dbo.SpParametersType
+							-- create final message
+							SET @V_Message = ''<notification>''
+							SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + N'''
+							IF @V_MessageInserted IS NOT NULL 
+								SET @V_Message = @V_Message + @V_MessageInserted
+							IF @V_MessageDeleted IS NOT NULL 
+								SET @V_Message = @V_Message + @V_MessageDeleted
+							SET @V_Message = @V_Message + ''</notification>''
 
-							DECLARE @str NVARCHAR(MAX)
-							SET @str = ''' + @ListenerProcedureParametersXlm + N'''
-							DECLARE @xml xml
-							SELECT @xml = CAST(CAST(@str AS VARBINARY(MAX)) AS XML) 
-
-							INSERT INTO @SParameters (PName, Ptype, PValue)
-								SELECT 
-										x.Rec.query(''./name'').value(''.'', ''NVARCHAR(100)'') AS ''PName'',
-										x.Rec.query(''./type'').value(''.'', ''NVARCHAR(20)'') AS ''Ptype'',
-										x.Rec.query(''./value'').value(''.'', ''NVARCHAR(100)'') AS ''PValue''
-									FROM @xml.nodes(''/' + @ListenerProcedureName + N'/parameter'') as x(Rec)
-
-							EXEC [NotificationBroker].[ListenerUninstall] 
-								@ListenerAppName = ''' + @ListenerAppName + N''', 
-								@ListenerProcedureName = ''' + @ListenerProcedureName + N''', 
-								@ListenerSParameters = @SParameters
+							--Beginning of dialog...
+                			DECLARE @V_ConvHandle UNIQUEIDENTIFIER
+                			--Determine the Initiator Service, Target Service and the Contract 
+                			BEGIN DIALOG @V_ConvHandle 
+								FROM SERVICE ' + @V_Service + ' 
+								TO SERVICE ''' + @V_Service + ''' 
+								ON CONTRACT [DEFAULT] 
+								WITH ENCRYPTION = OFF, 
+								LIFETIME = ' + CAST( @V_ValidFor AS NVARCHAR(200)) + '; 
+							--Send the Message
+							SEND ON CONVERSATION @V_ConvHandle 
+								MESSAGE TYPE [DEFAULT] (@V_Message);
+							--End conversation
+							END CONVERSATION @V_ConvHandle;
 						END
 				END 
-			'
-			IF NOT EXISTS (
-				SELECT [name]
-					FROM sys.triggers
-					WHERE [name] = @ListenerTriger
-			)
-				BEGIN
-					SET @Listenercmd = null
-					SET @Listenercmd = N'
-						CREATE TRIGGER [' + @ListenerTriger + N'] 
-						' + @ListenerTrigerBody
-					EXEC sp_executesql @Listenercmd
-				END
-			ELSE
-				BEGIN
-					SET @Listenercmd = null
-					SET @Listenercmd = N'
-						ALTER TRIGGER [' + @ListenerTriger + N'] 
-						' + @ListenerTrigerBody
-					EXEC sp_executesql @Listenercmd
-				END
-			COMMIT TRANSACTION;
-			FETCH NEXT FROM ListenertableCursor INTO @Listenertable
-		END
-	CLOSE ListenertableCursor;
-	DEALLOCATE ListenertableCursor;
+			' ;
+			BEGIN TRANSACTION 
+				-- lock whole table
+				SET @V_Cmd = '
+					SELECT TOP 1 
+							1 
+						FROM ' + quotename( @V_ReferencedTable ) + '
+						WITH (UPDLOCK, TABLOCKX, HOLDLOCK) 
+					' ;
+				EXEC sp_executesql @V_Cmd ;
 
-	--COMMIT TRANSACTION;
+				IF NOT EXISTS (
+					SELECT [name]
+						FROM sys.triggers
+						WHERE [name] = @V_TrigerName
+				)
+					BEGIN
+						SET @V_Cmd = '
+							CREATE TRIGGER [' + @V_TrigerName + N'] 
+							' + @V_TrigerBody ;
+						EXEC sp_executesql @V_Cmd ;
+					END
+				ELSE
+					BEGIN
+						SET @V_Cmd = N'
+							ALTER TRIGGER [' + @V_TrigerName + N'] 
+							' + @V_TrigerBody ;
+						EXEC sp_executesql @V_Cmd ;
+					END
+			COMMIT TRANSACTION;
+			FETCH NEXT FROM ReferencedTablesCursor INTO @V_ReferencedTable ;
+		END
+	CLOSE ReferencedTablesCursor ;
+	DEALLOCATE ReferencedTablesCursor ;
 END
 
 

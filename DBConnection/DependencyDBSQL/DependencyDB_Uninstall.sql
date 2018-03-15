@@ -1,43 +1,54 @@
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-ALTER PROCEDURE [DependencyDB].[Uninstall]
-	@AppName NVARCHAR(110), -- max object name length is 128 ex. 'MemSourceAPI'
-	@SubscriberString NVARCHAR(128), -- ex. 'A_JobPart_Select'
-	@ProcedureSchemaName NVARCHAR(128),
-	@ProcedureName NVARCHAR(128),
-	@ProcedureParameters dbo.SpParametersType READONLY
+CREATE PROCEDURE [DependencyDB].[Uninstall]
+	@V_SubscriberString NVARCHAR(200) = null,
+	@V_SubscriptionHash INT = null,
+	@V_ProcedureSchemaName SYSNAME = null,
+	@V_ProcedureName SYSNAME = null,
+	@TBL_ProcedureParameters dbo.TYPE_ParametersType READONLY
 AS
 BEGIN
 
-	DECLARE @ListenerQueue NVARCHAR(128)
-	SET @ListenerQueue = N'ListenerQueue_' + @ListenerAppName
-	DECLARE @ListenerService NVARCHAR(128)
-	SET @ListenerService = N'ListenerService_' + @ListenerAppName
+	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_Cmd NVARCHAR(max);
 
-	DECLARE @ProcedureParametersString NVARCHAR(110)
-	SET @ProcedureParametersString = 
-		(select '_' + PValue
-		from @ListenerSParameters 
-		FOR XML PATH(''))
+	DECLARE @V_Queue SYSNAME ;
+	SET @V_Queue =  'Queue_' + @V_MainName ;
 
-	DECLARE @ListenerProcedureParametersXlm NVARCHAR(max) 
-	SET @ListenerProcedureParametersXlm = N'<' + @ListenerProcedureName + N'>' +(
+	DECLARE @V_Service SYSNAME ;
+	SET @V_Service = 'Service_' + @V_MainName ;
+
+	DECLARE @V_ProcedureParametersXlm NVARCHAR(max) ;
+	IF EXISTS (
 		SELECT 
-				PName as name,
-				PType as type,
-				PValue as value
-			FROM @ListenerSParameters 
-			FOR XML PATH(N'parameter')
-	) + N'</' + @ListenerProcedureName + N'>'
+			PName as name
+		FROM @TBL_ProcedureParameters)
+		BEGIN
+			SET @V_ProcedureParametersXlm = '<' + @V_ProcedureSchemaName + '>'+ '<' + @V_ProcedureName + '>' + ISNULL(
+				(SELECT 
+						PName as name,
+						PType as type,
+						PValue as value
+					FROM @TBL_ProcedureParameters 
+					FOR XML PATH('parameter'))
+				,'') + '</' + @V_ProcedureName + '>' + '</' + @V_ProcedureSchemaName + '>' ;
+		END
+	ELSE
+		BEGIN
+			SET @V_ProcedureParametersXlm = null ;
+		END
+	
 
-	DECLARE @cmd NVARCHAR(MAX)
-	-- notyfy app that substribtion was removed
-	--Beginning of dialog...
-	SET @cmd = N'
+
+
+
+
+
+
+
+
+
+
+
+	SET @V_Cmd = N'
 		DECLARE @message NVARCHAR(MAX)
 		SET @message = N''<RemoveNotification>''
 		SET @message = @message + ''' + @ListenerProcedureParametersXlm + '''

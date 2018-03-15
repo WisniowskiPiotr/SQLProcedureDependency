@@ -1,5 +1,5 @@
-DECLARE @V_MainName sysname = '{0}';
-DECLARE @V_Cmd nvarchar(max);
+DECLARE @V_MainName SYSNAME = '{0}';
+DECLARE @V_Cmd NVARCHAR(max);
 SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
 

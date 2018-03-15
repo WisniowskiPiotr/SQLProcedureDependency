@@ -6,7 +6,6 @@ using System.Data.SqlClient;
 
 namespace DBConnection
 {
-
     public class SqlProcedures
     {
         public AccessDB AccessDBInstance { get; }

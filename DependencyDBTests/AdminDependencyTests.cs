@@ -12,8 +12,6 @@ namespace DBConnectionTests
     public class AdminDependencyTests
     {
         AdminDependencyDB AdminDependencyDBInstance = new AdminDependencyDB(CommonTestsValues.AdminConnectionString);
-        string MainServiceName = "DependencyDB";
-        string InstallPass = "testPass";
 
         [TestMethod]
         public void AdminInstall()
@@ -23,18 +21,18 @@ namespace DBConnectionTests
             // CleanUp DB
             slqCommandText = string.Format(
                 Resources.AdminInstall_Cleanup,
-                MainServiceName
+                CommonTestsValues.MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             AdminDependencyDBInstance.AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             // Try install
-            AdminDependencyDBInstance.AdminInstall(InstallPass, MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
 
             // Test install
             slqCommandText = string.Format(
                 Resources.AdminInstall_Test,
-                MainServiceName
+                CommonTestsValues.MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
@@ -44,12 +42,12 @@ namespace DBConnectionTests
             }
 
             // try instal with existing objects
-            AdminDependencyDBInstance.AdminInstall(InstallPass, MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(
                 Resources.AdminInstall_Test,
-                MainServiceName
+                CommonTestsValues.MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult2 = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
@@ -59,6 +57,9 @@ namespace DBConnectionTests
             }
         }
 
+        /// <summary>
+        /// Do not run this after AdminUninstall
+        /// </summary>
         [TestMethod]
         public void AdminInstallObservedShema()
         {
@@ -67,12 +68,12 @@ namespace DBConnectionTests
             AccessDB serviceAccessDB = new AccessDB(CommonTestsValues.ServiceConnectionString);
 
             // Try
-            AdminDependencyDBInstance.AdminInstallObservedShema("dbo", MainServiceName, false);
+            AdminDependencyDBInstance.AdminInstallObservedShema("dbo", CommonTestsValues.MainServiceName, false);
 
             // Test
             slqCommandText = string.Format(
                 Resources.AdminInstallObservedShema_Test,
-                MainServiceName
+                CommonTestsValues.MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             try
@@ -90,12 +91,12 @@ namespace DBConnectionTests
             }
 
             // Try
-            AdminDependencyDBInstance.AdminInstallObservedShema("dbo", MainServiceName);
+            AdminDependencyDBInstance.AdminInstallObservedShema("dbo", CommonTestsValues.MainServiceName);
 
             // Test
             slqCommandText = string.Format(
                 Resources.AdminInstallObservedShema_Test,
-                MainServiceName
+                CommonTestsValues.MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult2 = serviceAccessDB.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
@@ -113,12 +114,12 @@ namespace DBConnectionTests
             SqlCommand sqlCommand;
             
             // Try install
-            AdminDependencyDBInstance.AdminUnInstall(MainServiceName);
+            AdminDependencyDBInstance.AdminUnInstall(CommonTestsValues.MainServiceName);
 
             // Test install
             slqCommandText = string.Format(
                 Resources.AdminUnInstall_Test,
-                MainServiceName
+                CommonTestsValues.MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
@@ -128,12 +129,12 @@ namespace DBConnectionTests
             }
 
             // try instal again
-            AdminDependencyDBInstance.AdminInstall(InstallPass, MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(
                 Resources.AdminInstall_Test,
-                MainServiceName
+                CommonTestsValues.MainServiceName
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             List<Tuple<int>> testResult2 = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);

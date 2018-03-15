@@ -34,9 +34,9 @@ namespace DBConnection
             Type = type;
         }
 
-        public string GetHashText()
+        public string GetHashText(string appName = "")
         {
-            string hash = SubscriberString + ProcedureSchemaName + ProcedureName;
+            string hash = appName + ProcedureSchemaName + ProcedureName;
             foreach (SqlParameter sqlParameter in ProcedureParameters)
             {
                 hash = hash + sqlParameter.ParameterName + sqlParameter.SqlDbType.GetName() + sqlParameter.Value.ToString();
@@ -69,7 +69,7 @@ namespace DBConnection
         /// <returns> Flag determining if object is Subscription for same procedureName and procedureParameters. </returns>
         public bool Equals(Subscription sub)
         {
-            if (this.GetHashText() == sub.GetHashText())
+            if (this.GetHashText() == sub.GetHashText() && this.SubscriberString == sub.SubscriberString)
             {
                 return true;
             }

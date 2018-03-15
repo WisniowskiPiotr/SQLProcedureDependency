@@ -118,28 +118,13 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="AdminAddObservedShema" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\AdminAddObservedShema.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
+  <data name="AdminInstallObservedShema_Test" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\AdminDependencyTestsSql\AdminInstallObservedShema_Test.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
   </data>
-  <data name="AdminInstall" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\AdminInstall.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
+  <data name="AdminInstall_Cleanup" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\AdminDependencyTestsSql\AdminInstall_Cleanup.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
   </data>
-  <data name="AdminRemoveObservedShema" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\AdminRemoveObservedShema.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
-  </data>
-  <data name="AdminUnInstall" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\AdminUnInstall.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
-  </data>
-  <data name="DependencyDB_Install" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\DependencyDB_Install.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
-  </data>
-  <data name="DependencyDB_ReceiveNotification" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\DependencyDB_ReceiveNotification.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
-  </data>
-  <data name="DependencyDB_Uninstall" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\DependencyDB_Uninstall.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
-  </data>
-  <data name="DependencyDB_UninstallAll" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\DependencyDBSQL\DependencyDB_UninstallAll.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
+  <data name="AdminInstall_Test" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\AdminDependencyTestsSql\AdminInstall_Test.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
   </data>
 </root>

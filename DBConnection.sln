@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBConnection", "DBConnectio
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "TestDatabase", "TestDatabase\TestDatabase.sqlproj", "{70C1B0DE-1475-44AC-A8A8-A00F5950CB5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DependencyDBTests", "DependencyDBTests\DependencyDBTests.csproj", "{062F8929-6508-474D-98B2-062B448558E7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBConnectionTests", "DependencyDBTests\DBConnectionTests.csproj", "{062F8929-6508-474D-98B2-062B448558E7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

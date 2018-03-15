@@ -31,10 +31,11 @@ namespace DBConnection
         /// </summary>
         /// <param name="password"> Password used for newly created DependencyDB login. </param>
         /// <param name="observedShema"> Shema name which can be observed by DependencyDB. </param>
-        public void AdminInstall( string password, string observedShema="dbo")
+        public void AdminInstall( string password, string mainServiceName = "DependencyDB", string observedShema="dbo")
         {
             string slqCommandText = string.Format(
                 Resources.AdminInstall,
+                mainServiceName,
                 password);
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
@@ -47,16 +48,17 @@ namespace DBConnection
         /// </summary>
         /// <param name="observedShema"> Name of observed shema. </param>
         /// <param name="allow"> If true grants provilages. Othervise revoke provilages. </param>
-        public void AdminInstallObservedShema(string observedShema, bool allow = true)
+        public void AdminInstallObservedShema(string observedShema, string mainServiceName = "DependencyDB", bool allow = true)
         {
-            string file;
+            string sqlCommandText;
             if (allow)
-                file = Resources.AdminAddObservedShema;
+                sqlCommandText = Resources.AdminAddObservedShema;
             else
-                file = Resources.AdminRemoveObservedShema;
+                sqlCommandText = Resources.AdminRemoveObservedShema;
             string slqCommandText = string.Format(
-                file
-                , observedShema);
+                sqlCommandText,
+                mainServiceName,
+                observedShema);
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }

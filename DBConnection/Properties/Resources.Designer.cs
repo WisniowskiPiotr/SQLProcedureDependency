@@ -62,14 +62,14 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;DependencyDB&apos;
+        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;DependencyDB&apos;;
+        ///DECLARE @V_Cmd nvarchar(2000);
         ///
         ///SET @V_Cmd = &apos;
         ///	GRANT ALTER ON SCHEMA::{0} TO &apos; + quotename(@V_MainName)  + &apos;;
         ///	GRANT SELECT ON SCHEMA::{0} TO &apos; + quotename(@V_MainName)  + &apos;;
         ///&apos;
-        ///EXEC( @V_Cmd);
-        ///GO.
+        ///EXEC( @V_Cmd );.
         /// </summary>
         public static string AdminAddObservedShema {
             get {
@@ -78,21 +78,8 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;DependencyDB&apos;
-        ///DECLARE @V_Cmd nvarchar(2000)
-        ///
-        ///-- Enable brooker
-        ///DECLARE @V_BrokerEnabled bit
-        ///SELECT @V_BrokerEnabled = is_broker_enabled
-        ///	FROM sys.databases
-        ///	WHERE name = DB_NAME()
-        ///IF (@V_BrokerEnabled != 1)
-        ///	BEGIN
-        ///		ALTER DATABASE DB_NAME 
-        ///			SET NEW_BROKER 
-        ///			WITH ROLLBACK IMMEDIATE;
-        ///	END
-        ///GO
+        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd nvarchar(2000);
         ///
         ///-- Create or ReCreate DependencyDB login
         ///BEGIN TRANSACTION
@@ -101,7 +88,17 @@ namespace DBConnection.Properties {
         ///		FROM master.sys.server_principals
         ///		WHERE name = @V_MainName)
         ///		BEGIN
-        ///			 [rest of string was truncated]&quot;;.
+        ///			SET @V_Cmd = &apos;
+        ///				DROP LOGIN &apos; + quotename(@V_MainName)
+        ///			EXEC ( @V_Cmd );
+        ///		END
+        ///	SET @V_Cmd = &apos;
+        ///		CREATE LOGIN &apos; + quotename(@V_MainName) + &apos;
+        ///			WITH PASSWORD = &apos;&apos;{1}&apos;&apos;, 
+        ///			CHECK_EXPIRATION = OFF, 
+        ///			CHECK_POLICY = OFF&apos;
+        ///	EXEC ( @V_Cmd )
+        ///COMMIT TRANSACTION        /// [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminInstall {
             get {

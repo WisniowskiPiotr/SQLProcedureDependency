@@ -13,6 +13,19 @@ BEGIN
 
 	DECLARE @V_Service SYSNAME ;
 	SET @V_Service = 'Service_' + @V_MainName ;
+
+	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
+	SET @V_ProcedureParametersList = ISNULL(
+			(SELECT ', ' + 
+				CASE 
+					WHEN SUBSTRING(PName,1,1) !='@'
+					THEN '@'
+					ELSE ''
+				END + PName + ' ' + PType + ' ' 
+			FROM @TBL_ProcedureParameters 
+			FOR XML PATH(''))
+		,'') ;
+	SET @V_ProcedureParametersList = SUBSTRING( @V_ProcedureParametersList , 2 , LEN( @V_ProcedureParametersList ))
 	
 	DECLARE @V_ProcedureParametersDeclaration NVARCHAR(max) ;
 	SET @V_ProcedureParametersDeclaration = ISNULL(
@@ -28,33 +41,66 @@ BEGIN
 				WHEN CHARINDEX('CHAR', PType) != 0
 				THEN CHAR(39)
 				ELSE ''
-				END + ' '  + CHAR(13) + CHAR(10)
+				END + ' ; '  
 			FROM @TBL_ProcedureParameters 
 			FOR XML PATH(''))
 		,'') ;
 
-	DECLARE @V_ProcedureParametersXlm NVARCHAR(max)  ;
-	SET @V_ProcedureParametersXlm = '<' + @V_ProcedureSchemaName + '>'+ '<' + @V_ProcedureName + '>' + ISNULL(
+	DECLARE @V_ProcedureParametersXlm NVARCHAR(max) ;
+	SET @V_ProcedureParametersXlm = '<schema name="' + @V_ProcedureSchemaName + '">'+ '<procedure name="' + @V_ProcedureName + '">' + ISNULL(
 		(SELECT 
 				PName as name,
 				PType as type,
 				PValue as value
 			FROM @TBL_ProcedureParameters 
 			FOR XML PATH('parameter'))
-		,'') + '</' + @V_ProcedureName + '>' + '</' + @V_ProcedureSchemaName + '>' ;
-	
+		,'') + '</procedure>' + '</schema>' ;
 
 	-- get procedure text
 	DECLARE @V_ProcedureText NVARCHAR(max) ;
-	SELECT @V_ProcedureText = ROUTINE_DEFINITION
-		FROM INFORMATION_SCHEMA.ROUTINES 
-		WHERE ROUTINE_NAME = @V_ProcedureName
-		AND ROUTINE_SCHEMA = @V_ProcedureSchemaName
-		AND ROUTINE_TYPE = 'PROCEDURE' ;
+	SELECT @V_ProcedureText = sql_modules.definition
+		FROM sys.sql_modules AS sql_modules
+		INNER JOIN sys.procedures AS procedures
+			ON procedures.object_id = sql_modules.object_id
+		INNER JOIN sys.schemas AS schemas
+			ON schemas.schema_id = procedures.schema_id
+		WHERE schemas.name = @V_ProcedureSchemaName
+			AND procedures.name = @V_ProcedureName ;
 
-	-- get rid of BEGIN and END from procedure
-	-- TODO: is this neccesary?
-	SET @V_ProcedureText = SUBSTRING( @V_ProcedureText , CHARINDEX( 'BEGIN' , @V_ProcedureText) + 5, ( ( LEN( @V_ProcedureText ) - ( CHARINDEX( 'DNE' , REVERSE( @V_ProcedureText ) ) + 2) ) - ( CHARINDEX( 'BEGIN', @V_ProcedureText ) + 4) ) ) ;
+	-- get rid of begining of procedure
+	DECLARE @TBL_StartPoz Table (
+		[C_StartPoz] bigint
+	) ;
+	INSERT INTO @TBL_StartPoz
+	VALUES (CHARINDEX( ' AS ', @V_ProcedureText) + 4),
+		(CHARINDEX( ' AS' + CHAR(10), @V_ProcedureText) + 4),
+		(CHARINDEX( ' AS' + CHAR(13), @V_ProcedureText) + 4),
+		(CHARINDEX( CHAR(10) + 'AS ', @V_ProcedureText) + 4),
+		(CHARINDEX( CHAR(10) + 'AS' + CHAR(10), @V_ProcedureText) + 4),
+		(CHARINDEX( CHAR(10) + 'AS' + CHAR(13), @V_ProcedureText) + 4),
+		(CHARINDEX( CHAR(13) + 'AS ', @V_ProcedureText) + 4),
+		(CHARINDEX( CHAR(13) + 'AS' + CHAR(10), @V_ProcedureText) + 4),
+		(CHARINDEX( CHAR(13) + 'AS' + CHAR(13), @V_ProcedureText) + 4),
+		(CHARINDEX('ASBEGIN',@V_ProcedureText)  + 7) ;
+	DECLARE @V_startPoz bigint ;
+	SELECT @V_startPoz = MIN ( TBL_StartPoz.C_StartPoz )
+		FROM @TBL_StartPoz AS TBL_StartPoz
+		WHERE TBL_StartPoz.C_StartPoz > 7;
+	SET @V_ProcedureText = SUBSTRING(@V_ProcedureText , @V_startPoz ,LEN( @V_ProcedureText ) - @V_startPoz + 1) ;
+	
+	-- get result table definition
+	DECLARE @V_ResultTableDefinition NVARCHAR(max)
+	SET @V_ResultTableDefinition =
+		(SELECT ',' + TBL_ResultDefinition.name + ' ' + TBL_ResultDefinition.system_type_name --+   CHAR(10) 
+		FROM [sys].[dm_exec_describe_first_result_set] ( @V_ProcedureText, @V_ProcedureParametersList, 0) AS TBL_ResultDefinition
+		FOR XML PATH('')) ;
+	SET @V_ResultTableDefinition = '
+		DECLARE @TBL_ResultTable TABLE (
+			' +
+			SUBSTRING( @V_ResultTableDefinition , 2 , LEN(@V_ResultTableDefinition))
+		+ '
+		) ;
+	' ;
 
 	-- get tables used in procedure
 	DECLARE @TBL_ReferencedTables TABLE (
@@ -62,9 +108,11 @@ BEGIN
 	) ;
 	INSERT INTO @TBL_ReferencedTables
 		SELECT 
-				quotename( referenced_schema_name ) + '.' + quotename( referenced_entity_name )
-			FROM sys.dm_sql_referenced_entities ( @V_ProcedureSchemaName + '.' + @V_ProcedureName , 'OBJECT' )
-			WHERE referenced_minor_id = 0 ;
+				quotename( ReferencedEntities.referenced_schema_name ) + '.'  + quotename( ReferencedEntities.referenced_entity_name ) ,*
+			FROM sys.dm_sql_referenced_entities ( quotename( @V_ProcedureSchemaName ) + '.' + quotename( @V_ProcedureName ) , 'OBJECT' ) AS ReferencedEntities
+			WHERE ReferencedEntities.referenced_minor_id = 0
+				AND ReferencedEntities.referenced_entity_name IS NOT NULL
+				AND ReferencedEntities.referenced_schema_name IS NOT NULL
 
 	-- for each affected table
 	DECLARE @V_ReferencedTable SYSNAME ;
@@ -94,7 +142,8 @@ BEGIN
 					DECLARE @V_MessageParameters NVARCHAR(MAX)
 					DECLARE @V_MessageDeleted NVARCHAR(MAX)
 					DECLARE @V_retvalOUT NVARCHAR(MAX)
-					' + @V_ProcedureParametersDeclaration + '
+
+					' + @V_ResultTableDefinition + '
 									
 					-- inner procedure
 					-- inserted rows
@@ -102,6 +151,12 @@ BEGIN
 						SELECT * 
 							FROM INSERTED
 					)
+						BEGIN
+							
+
+							INSERT INTO @TBL_ResultTable
+							EXEC sp_executesql 
+						END
 						SET @V_retvalOUT = (
 						-- start inner procedure
 						' + REPLACE( @V_ProcedureText, @V_ReferencedTable, 'INSERTED') + '

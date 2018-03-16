@@ -10,13 +10,8 @@ BEGIN
 
 	SET NOCOUNT ON; 
 	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_Service SYSNAME = '{1}'  ;
 	DECLARE @V_Cmd NVARCHAR(max);
-
-	DECLARE @V_Queue SYSNAME ;
-	SET @V_Queue =  'Queue_' + @V_MainName ;
-
-	DECLARE @V_Service SYSNAME ;
-	SET @V_Service = 'Service_' + @V_MainName ;
 
 	DECLARE @V_ProcedureParametersXlm NVARCHAR(max) ;
 	SET @V_ProcedureParametersXlm = '<schema name="' + @V_ProcedureSchemaName + '">'+ '<procedure name="' + @V_ProcedureName + '">' + ISNULL(
@@ -85,7 +80,7 @@ BEGIN
 	DECLARE @V_TriggerNames NVARCHAR(max) ;
 	DECLARE @V_Message NVARCHAR(MAX) ;
 
-	DECLARE C_SubscribersToBeRemovedCursor CURSOR FOR
+	DECLARE CU_SubscribersToBeRemovedCursor CURSOR FOR
 		SELECT TBL_SubscribersToBeRemoved.C_SubscriberString,
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
 			TBL_SubscribersToBeRemoved.TriggerNames
@@ -94,8 +89,8 @@ BEGIN
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
 			TBL_SubscribersToBeRemoved.TriggerNames;
 
-	OPEN C_SubscribersToBeRemovedCursor ;
-	FETCH NEXT FROM C_SubscribersToBeRemovedCursor 
+	OPEN CU_SubscribersToBeRemovedCursor ;
+	FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 
 		INTO @V_SubscriberString, 
 			@V_ProcedureParameters, 
 			@V_TriggerNames ;
@@ -120,171 +115,64 @@ BEGIN
 			-- Drop Triggers
 			DECLARE @V_TriggerName SYSNAME ;
 			DECLARE @V_TableName SYSNAME ;
-			DECLARE C_TriggersToBeRemovedCursor CURSOR FOR
-				SELECT TBL_TriggerNames.value 
+			DECLARE @V_TableSchemaName SYSNAME ;
+			DECLARE CU_TriggersToBeRemovedCursor CURSOR FOR
+				SELECT TBL_Triggers.name AS C_TriggerName,
+					TBL_Objects.name AS C_TableName,
+					TBL_Schemas.name AS C_TableSchemaName
 				FROM STRING_SPLIT( @V_TriggerNames , ';') AS TBL_TriggerNames
-				GROUP BY TTBL_TriggerNames.value ;
+				INNER JOIN sys.triggers AS TBL_Triggers
+					ON QUOTENAME( TBL_Triggers.name ) = TBL_TriggerNames.value
+				INNER JOIN sys.objects AS TBL_Objects
+					ON TBL_Objects.object_id = TBL_Triggers.parent_id
+					AND TBL_Objects.type_desc = 'USER_TABLE'
+				INNER JOIN sys.schemas AS TBL_Schemas
+					ON TBL_Schemas.schema_id = TBL_Objects.schema_id
+				GROUP BY TTBL_TriggerNames.value,
+					TBL_Objects.name,
+					TBL_Schemas.name ;
 
-			OPEN C_TriggersToBeRemovedCursor ;
-			FETCH NEXT FROM C_TriggersToBeRemovedCursor 
-				INTO @V_TriggerName ;
-			WHILE @@FETCH_STATUS = 0
+			OPEN CU_TriggersToBeRemovedCursor ;
+			FETCH NEXT FROM CU_TriggersToBeRemovedCursor 
+				INTO @V_TriggerName,
+					@V_TableName,
+					@V_TableSchemaName ;
+			WHILE @@FETCH_STATUS = 0 
 				BEGIN
-					IF EXISTS (
-						SELECT [name]
-						FROM sys.triggers
-						WHERE [name] = @V_TriggerName
-					)
-						BEGIN
-							BEGIN TRANSACTION 
-							-- lock table
-							SET @cmd = N'
-								SELECT TOP 1 
-										1 
-									FROM ' + @table + N'
-									WITH (UPDLOCK, TABLOCKX, HOLDLOCK) 
-								'
-							EXEC sp_executesql @cmd
+					BEGIN TRANSACTION 
+					-- lock table
+					SET @V_Cmd = '
+						DECLARE @V_Dummy int
+						SELECT TOP 1 
+							@V_Dummy = 1 
+						FROM ' + QUOTENAME( @V_TableSchemaName ) + '.' + QUOTENAME( @V_TableName ) + '
+						WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
+					' ;
+					EXEC sp_executesql @cmd
 
-							SET @cmd = N'
-								DROP TRIGGER [' + @Trigger + N'] '
-							EXEC sp_executesql @cmd
+					SET @cmd = '
+						DROP TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' ; '
+					EXEC sp_executesql @cmd
 
-							COMMIT TRANSACTION;
-						END
+					COMMIT TRANSACTION;
+
+					FETCH NEXT FROM CU_TriggersToBeRemovedCursor 
+						INTO @V_TriggerName,
+							@V_TableName,
+							@V_TableSchemaName ;
 				END
-			CLOSE C_TriggersToBeRemovedCursor ;
-			DEALLOCATE C_TriggersToBeRemovedCursor ;
+			CLOSE CU_TriggersToBeRemovedCursor ;
+			DEALLOCATE CU_TriggersToBeRemovedCursor ;
 
-			FETCH NEXT FROM C_SubscribersToBeRemovedCursor 
+			FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 
 				INTO @V_SubscriberString, 
 					@V_ProcedureParameters, 
 					@V_TriggerNames ;
 		END
-	CLOSE C_SubscribersToBeRemovedCursor ;
-	DEALLOCATE C_SubscribersToBeRemovedCursor ;
+	CLOSE CU_SubscribersToBeRemovedCursor ;
+	DEALLOCATE CU_SubscribersToBeRemovedCursor ;
+
+	RETURN 0 ;
+END ;
 
 
-
-
-
-
-
-	'
-	
-	DECLARE @V_ConvHandle UNIQUEIDENTIFIER
-    --Determine the Initiator Service, Target Service and the Contract 
-    BEGIN DIALOG @V_ConvHandle 
-		FROM SERVICE ' + @V_Service + ' 
-		TO SERVICE ''' + @V_Service + ''' 
-		ON CONTRACT [DEFAULT] 
-		WITH ENCRYPTION = OFF, 
-		LIFETIME = ' + CAST( @V_NotificationValidFor AS NVARCHAR(200)) + '; 
-	--Send the Message
-	SEND ON CONVERSATION @V_ConvHandle 
-		MESSAGE TYPE [DEFAULT] (@V_Message);
-	--End conversation
-	END CONVERSATION @V_ConvHandle;
-	'
-
-
-
-
-	<notification subscriberstring="">
-
-	SET @V_Cmd = N'
-		DECLARE @message NVARCHAR(MAX)
-		SET @message = N''<unsubscribed subscriberstring="">''
-		SET @message = @message + ''' + @ListenerProcedureParametersXlm + '''
-		SET @message = @message + N''</unsubscribed>''
-        DECLARE @ConvHandle UNIQUEIDENTIFIER
-        --Determine the Initiator Service, Target Service and the Contract 
-        BEGIN DIALOG @ConvHandle 
-			FROM SERVICE ' + @ListenerService + N' 
-			TO SERVICE ''' + @ListenerService + N''' 
-			ON CONTRACT [DEFAULT] 
-			WITH ENCRYPTION = OFF;
-		--Send the Message
-		SEND ON CONVERSATION @ConvHandle 
-			MESSAGE TYPE [DEFAULT] (@message);
-		--End conversation
-		END CONVERSATION @ConvHandle;
-		'
-	EXEC sp_executesql @cmd
-
-	-- drop triggers
-	DECLARE @Trigger NVARCHAR(128)
-	DECLARE TriggerCursor CURSOR FOR
-		SELECT [name]
-			FROM sys.triggers
-			WHERE [name] like @ListenerAppName + N'_%_' + @ListenerProcedureName + N'_' +  @ProcedureParametersString 
-	OPEN TriggerCursor
-	FETCH NEXT FROM TriggerCursor
-		INTO @Trigger
-	WHILE @@FETCH_STATUS = 0
-		BEGIN
-			SET @cmd = N'
-				IF EXISTS (
-					SELECT [name]
-						FROM sys.triggers
-						WHERE [name] = ''' + @Trigger + N'''
-				)
-				DROP TRIGGER [' + @Trigger + N'] '
-			EXEC sp_executesql @cmd
-
-			FETCH NEXT FROM TriggerCursor INTO @Trigger
-		END
-	CLOSE TriggerCursor;
-	DEALLOCATE TriggerCursor;
-
-	-- if no other triggers exist drop rest
-	--IF NOT EXISTS (
-	--	SELECT [name]
-	--		FROM sys.triggers
-	--		WHERE [name] like @ListenerAppName + N'_%'
-	--)
-	--	BEGIN
-	--		DECLARE @serviceId INT
-	--		SELECT @serviceId = service_id FROM sys.services 
-	--			WHERE sys.services.name = @ListenerService
-	--		IF @serviceId is not null
-	--		BEGIN 
-	--			--DECLARE @ConvHandle uniqueidentifier
-	--			--DECLARE Conv CURSOR FOR
-	--			--	SELECT CEP.conversation_handle 
-	--			--		FROM sys.conversation_endpoints CEP
-	--			--		WHERE CEP.service_id = @serviceId AND ([state] != 'CD' AND [lifetime] > GETDATE())
-	--			--OPEN Conv;
-	--			--FETCH NEXT FROM Conv INTO @ConvHandle;
-	--			--	WHILE (@@FETCH_STATUS = 0) 
-	--			--	BEGIN
- --   --					END CONVERSATION @ConvHandle;
-	--			--		FETCH NEXT FROM Conv INTO @ConvHandle;
-	--			--	END
-	--			--CLOSE Conv;
-	--			--DEALLOCATE Conv;
-
-	--			-- Droping service.
-	--			SET @cmd = N'
-	--				DROP SERVICE [' + @ListenerService  + N'] '
-	--			EXEC sp_executesql @cmd
-	--		END
-
-	--		-- drop queue
-	--		--IF EXISTS(
-	--		--		SELECT name
-	--		--			FROM sys.service_queues
-	--		--			WHERE name = @ListenerQueue
-	--		--	)
-	--		--	BEGIN
-	--		--		SET @cmd = N'
-	--		--			IF NOT EXISTS (
-	--		--				SELECT [conversation_handle]
-	--		--					FROM [' + SCHEMA_NAME() + N'].[' + @ListenerQueue + N'] 
-	--		--					WHERE [message_body] is not null
-	--		--			)
-	--		--				DROP QUEUE [' + SCHEMA_NAME() + N'].[' + @ListenerQueue + N'] '
-	--		--		EXEC sp_executesql @cmd
-	--		--	END
-	--	END
-END

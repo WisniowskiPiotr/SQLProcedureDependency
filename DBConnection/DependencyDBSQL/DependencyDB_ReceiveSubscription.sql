@@ -7,6 +7,7 @@ BEGIN
 
 	SET NOCOUNT ON; 
 	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_Service SYSNAME = '{1}'  ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
 	DECLARE @V_Queue SYSNAME ;
@@ -40,7 +41,8 @@ BEGIN
 				IF ( @V_IsFound = 1 AND ( @V_ConnectionState = ''CO'' OR @V_ConnectionState = ''DI'') )
 					END CONVERSATION @V_ConvHandle; 
 			END
-        SELECT CAST( @V_Message AS NVARCHAR(MAX) ) 
+        SELECT CAST( @V_Message AS NVARCHAR(MAX) ) ;
 		'
-	EXEC sp_executesql @Listenercmd
-END
+	EXEC sp_executesql @Listenercmd ;
+	RETURN 0 ;
+END ;

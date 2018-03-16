@@ -20,10 +20,8 @@ BEGIN
 	
 	SET NOCOUNT ON; 
 	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_Service SYSNAME = '{1}'  ;
 	DECLARE @V_Cmd NVARCHAR(max);
-
-	DECLARE @V_Service SYSNAME ;
-	SET @V_Service = 'Service_' + @V_MainName ;
 
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
 	SET @V_ProcedureParametersList = ISNULL(
@@ -138,12 +136,12 @@ BEGIN
 	DECLARE @V_ReferencedNonQuotedTable NVARCHAR(256) ;
 	DECLARE @V_ReferencedSchema SYSNAME ;
 	DECLARE @V_ReferencedTable SYSNAME ;
-	DECLARE C_ReferencedTablesCursor CURSOR FOR
+	DECLARE CU_ReferencedTablesCursor CURSOR FOR
 		SELECT [SchemaName], 
 			[TableName]
 		FROM @TBL_ReferencedTables ;
-	OPEN C_ReferencedTablesCursor ;
-	FETCH NEXT FROM C_ReferencedTablesCursor 
+	OPEN CU_ReferencedTablesCursor ;
+	FETCH NEXT FROM CU_ReferencedTablesCursor 
 		INTO @V_ReferencedSchema, @V_ReferencedTable ;
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
@@ -286,11 +284,11 @@ BEGIN
 					END
 				
 			COMMIT TRANSACTION;
-			FETCH NEXT FROM C_ReferencedTablesCursor 
+			FETCH NEXT FROM CU_ReferencedTablesCursor 
 				INTO @V_ReferencedSchema, @V_ReferencedTable ;
 		END
-	CLOSE C_ReferencedTablesCursor ;
-	DEALLOCATE C_ReferencedTablesCursor ;
+	CLOSE CU_ReferencedTablesCursor ;
+	DEALLOCATE CU_ReferencedTablesCursor ;
 
 	SET @V_Cmd = '
 		INSERT INTO ' + QUOTENAME( @V_MainName ) + '.[SubscribersTable] (
@@ -312,7 +310,8 @@ BEGIN
 			''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''',
 		) ;
 	'
-	EXEC ( @V_Cmd );
-END
+	EXEC sp_executesql @V_Cmd ;
+	RETURN 0 ;
+END ;
 
 

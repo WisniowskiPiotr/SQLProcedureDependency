@@ -49,19 +49,22 @@ namespace DBConnection
 
             slqCommandText = string.Format(
                 Resources.DependencyDB_InstallSubscription,
-                mainServiceName);
+                mainServiceName,
+                "Service" + mainServiceName);
             sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             slqCommandText = string.Format(
                 Resources.DependencyDB_ReceiveSubscription,
-                mainServiceName);
+                mainServiceName,
+                "Service" + mainServiceName);
             sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             slqCommandText = string.Format(
                 Resources.DependencyDB_UninstallSubscription,
-                mainServiceName);
+                mainServiceName,
+                "Service" + mainServiceName);
             sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }

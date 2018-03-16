@@ -1,8 +1,11 @@
-CREATE PROCEDURE [DependencyDB].[ReceiveNotification]
-	@V_ReceiveTimeout int
-AS
+CREATE PROCEDURE [{0}].[ReceiveSubscription]
+	@V_ReceiveTimeout int = 150000 -- After 5 min retry getting message from queue.
+AS 
+--DECLARE
+--	@V_ReceiveTimeout INT = '150000'
 BEGIN
 
+	SET NOCOUNT ON; 
 	DECLARE @V_MainName SYSNAME = '{0}' ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
@@ -18,12 +21,13 @@ BEGIN
 		DECLARE @V_IsFound bit
 		WHILE @messageTypeId = 2
 			BEGIN
+				SET @V_ConvHandle = null ;
 				WAITFOR (
 					RECEIVE TOP(1) 
 							@V_ConvHandle = Conversation_Handle , 
 							@V_Message  = message_body , 
 							@V_MessageTypeId = message_type_id
-						FROM ' + quotename( @V_MainName ) + '.' + quotename( @V_Queue ) + '
+						FROM ' + QUOTENAME( @V_MainName ) + '.' + QUOTENAME( @V_Queue ) + '
 					)
 					, TIMEOUT ' + CAST( @V_ReceiveTimeout AS NVARCHAR(200)) + ';
 

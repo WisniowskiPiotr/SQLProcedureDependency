@@ -3,13 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 
 namespace DBConnection
 {
     /// <summary>
     /// Setups all neccesary Sql objects in DB. For details look to the .sql files. 
     /// This needs to be run olny once by admin. 
-    /// Using this in production is highly discouraged.
+    /// Using this class in production is highly discouraged.
     /// </summary>
     public class AdminDependencyDB
     {
@@ -33,14 +34,36 @@ namespace DBConnection
         /// <param name="observedShema"> Shema name which can be observed by DependencyDB. </param>
         public void AdminInstall( string password, string mainServiceName = "DependencyDB", string observedShema="dbo")
         {
-            string slqCommandText = string.Format(
+            TestName(mainServiceName);
+            string slqCommandText;
+            SqlCommand sqlCommand;
+
+            slqCommandText = string.Format(
                 Resources.AdminInstall,
                 mainServiceName,
                 password);
-            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
+            sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             AdminInstallObservedShema(observedShema);
+
+            slqCommandText = string.Format(
+                Resources.DependencyDB_InstallSubscription,
+                mainServiceName);
+            sqlCommand = new SqlCommand(slqCommandText);
+            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
+
+            slqCommandText = string.Format(
+                Resources.DependencyDB_ReceiveSubscription,
+                mainServiceName);
+            sqlCommand = new SqlCommand(slqCommandText);
+            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
+
+            slqCommandText = string.Format(
+                Resources.DependencyDB_UninstallSubscription,
+                mainServiceName);
+            sqlCommand = new SqlCommand(slqCommandText);
+            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }
 
         /// <summary>
@@ -50,6 +73,7 @@ namespace DBConnection
         /// <param name="allow"> If true grants provilages. Othervise revoke provilages. </param>
         public void AdminInstallObservedShema(string observedShema, string mainServiceName = "DependencyDB", bool allow = true)
         {
+            TestName(mainServiceName);
             string sqlCommandText;
             if (allow)
                 sqlCommandText = Resources.AdminAddObservedShema;
@@ -68,12 +92,30 @@ namespace DBConnection
         /// </summary>
         public void AdminUnInstall(string mainServiceName)
         {
+            TestName(mainServiceName);
             string slqCommandText = string.Format(
                 Resources.AdminUnInstall,
                 mainServiceName
                 );
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
+        }
+
+        private void TestName(string mainServiceName)
+        {
+            const int maxNameLength = 128 - 46;
+            const int minNameLength = 4;
+            if (mainServiceName.Length > maxNameLength || mainServiceName.Length < minNameLength)
+                throw new ArgumentException("Provided string for mainServiceName is for sure to long. It should be less than " + maxNameLength + " chars and more than " + minNameLength + " chars.");
+
+            const string allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_#$@1234567890";
+            foreach (char c in mainServiceName)
+            {
+                if (!allowedChars.Contains(c))
+                {
+                    throw new ArgumentException("Provided string for mainServiceName has characters from outside of allowed range. Please check i the name consists only chars from range: \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_#$@1234567890\". This is mainly good practise but unexpected results may occur when disabling this test.");
+                }
+            }
         }
     }
 }

@@ -1,24 +1,24 @@
-CREATE PROCEDURE [DependencyDB].[Install]
+CREATE PROCEDURE [{0}].[InstallSubscription]
 	@V_SubscriberString NVARCHAR(200),
 	@V_SubscriptionHash INT,
 	@V_ProcedureSchemaName SYSNAME,
 	@V_ProcedureName SYSNAME,
 	@TBL_ProcedureParameters dbo.TYPE_ParametersType READONLY,
-	@V_ValidFor INT
-AS
-
+	@V_NotificationValidFor INT = 432000 -- 5 days to receive notification
+AS 
 --DECLARE
---	@V_SubscriberString NVARCHAR(200) = 'SubscriberString',
+--	@V_SubscriberString NVARCHAR(200) = 'TestSubscriberString',
 --	@V_SubscriptionHash INT = '1234564',
---	@V_ProcedureSchemaName SYSNAME = 'NotificationBroker',
---	@V_ProcedureName SYSNAME = 'A_JobParts_Select',
---	@TBL_ProcedureParameters dbo.SpParametersType,
---	@V_ValidFor INT = 30
+--	@V_ProcedureSchemaName SYSNAME = 'dbo',
+--	@V_ProcedureName SYSNAME = 'TestProcedure',
+--	@TBL_ProcedureParameters dbo.TYPE_ParametersType,
+--	@V_NotificationValidFor INT = 30
 
 --INSERT INTO @TBL_ProcedureParameters (PName, Ptype, PValue)
---VALUES ('@order_id', 'int', -1) , ('@job_id', 'int', -1)
+--VALUES ('@param1', 'int', -1) , ('@param2', 'int', -1)
 BEGIN
-
+	
+	SET NOCOUNT ON; 
 	DECLARE @V_MainName SYSNAME = '{0}' ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
@@ -103,7 +103,7 @@ BEGIN
 	-- get result table definition
 	DECLARE @V_ResultTableDefinition NVARCHAR(max)
 	SET @V_ResultTableDefinition =
-		(SELECT ',' + quotename( TBL_ResultDefinition.name ) + ' ' + TBL_ResultDefinition.system_type_name --+   CHAR(10) 
+		(SELECT ',' + QUOTENAME( TBL_ResultDefinition.name ) + ' ' + TBL_ResultDefinition.system_type_name --+   CHAR(10) 
 		FROM [sys].[dm_exec_describe_first_result_set] ( @V_ProcedureText, null, 0) AS TBL_ResultDefinition
 		FOR XML PATH('')) ;
 	SET @V_ResultTableDefinition = '
@@ -123,7 +123,7 @@ BEGIN
 		SELECT 
 				ReferencedEntities.referenced_schema_name AS [SchemaName],
 				ReferencedEntities.referenced_entity_name AS [TableName]
-			FROM sys.dm_sql_referenced_entities ( quotename( @V_ProcedureSchemaName ) + '.' + quotename( @V_ProcedureName ) , 'OBJECT' ) AS ReferencedEntities
+			FROM sys.dm_sql_referenced_entities ( QUOTENAME( @V_ProcedureSchemaName ) + '.' + QUOTENAME( @V_ProcedureName ) , 'OBJECT' ) AS ReferencedEntities
 			WHERE ReferencedEntities.referenced_minor_id = 0
 				AND ReferencedEntities.referenced_entity_name IS NOT NULL
 				AND ReferencedEntities.referenced_schema_name IS NOT NULL
@@ -131,32 +131,39 @@ BEGIN
 				ReferencedEntities.referenced_entity_name ;
 
 	-- for each affected table
-	DECLARE @V_TrigerName SYSNAME ;
-	DECLARE @V_TrigerBody NVARCHAR(max)
+	DECLARE @V_TriggerNames NVARCHAR(max) = '' ;
+	DECLARE @V_TriggerName SYSNAME ;
+	DECLARE @V_TriggerBody NVARCHAR(max) ;
 	DECLARE @V_ReferencedQuotedTable NVARCHAR(256) ;
 	DECLARE @V_ReferencedNonQuotedTable NVARCHAR(256) ;
 	DECLARE @V_ReferencedSchema SYSNAME ;
 	DECLARE @V_ReferencedTable SYSNAME ;
-	DECLARE ReferencedTablesCursor CURSOR FOR
-		SELECT [SchemaName], [TableName]
-			FROM @TBL_ReferencedTables ;
-	OPEN ReferencedTablesCursor ;
-	FETCH NEXT FROM ReferencedTablesCursor INTO @V_ReferencedSchema, @V_ReferencedTable ;
+	DECLARE C_ReferencedTablesCursor CURSOR FOR
+		SELECT [SchemaName], 
+			[TableName]
+		FROM @TBL_ReferencedTables ;
+	OPEN C_ReferencedTablesCursor ;
+	FETCH NEXT FROM C_ReferencedTablesCursor 
+		INTO @V_ReferencedSchema, @V_ReferencedTable ;
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 		
-			SET @V_TrigerName =  @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200))  ;
-			SET @V_ReferencedQuotedTable = quotename( @V_ReferencedSchema ) + '.' + quotename( @V_ReferencedTable )
+			SET @V_TriggerName =  @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200))  ;
+			SET @V_TriggerNames = @V_TriggerNames + QUOTENAME( @V_TriggerName ) + ';'
+			SET @V_ReferencedQuotedTable = QUOTENAME( @V_ReferencedSchema ) + '.' + QUOTENAME( @V_ReferencedTable )
 			SET @V_ReferencedNonQuotedTable = @V_ReferencedSchema + '.' + @V_ReferencedTable
 			
 			-- Trigger statement
-			SET @V_TrigerBody = '
+			SET @V_TriggerBody = '
 				ON ' + @V_ReferencedQuotedTable + ' 
 				WITH EXECUTE AS ''' + USER_NAME() + '''
 				AFTER INSERT, UPDATE, DELETE
 				AS 
 				BEGIN
 					SET NOCOUNT ON; 
+
+					IF( GETDATE() > ''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''')
+						RETURN 0 ;
 
 					DECLARE @V_Message NVARCHAR(MAX) ;
 					DECLARE @V_MessageInserted NVARCHAR(MAX) ;
@@ -222,7 +229,7 @@ BEGIN
 						OR @V_MessageDeleted IS NOT NULL
 						BEGIN
 							-- create final message
-							SET @V_Message = ''<notification>''
+							SET @V_Message = ''<notification subscriberstring="">''
 							SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''
 							IF @V_MessageInserted IS NOT NULL 
 								SET @V_Message = @V_Message + @V_MessageInserted
@@ -234,11 +241,11 @@ BEGIN
                 			DECLARE @V_ConvHandle UNIQUEIDENTIFIER
                 			--Determine the Initiator Service, Target Service and the Contract 
                 			BEGIN DIALOG @V_ConvHandle 
-								FROM SERVICE ' + @V_Service + ' 
-								TO SERVICE ''' + @V_Service + ''' 
+								FROM SERVICE ' + QUOTENAME( @V_Service ) + ' 
+								TO SERVICE ''' + QUOTENAME( @V_Service ) + ''' 
 								ON CONTRACT [DEFAULT] 
 								WITH ENCRYPTION = OFF, 
-								LIFETIME = ' + CAST( @V_ValidFor AS NVARCHAR(200)) + '; 
+								LIFETIME = ' + CAST( @V_NotificationValidFor AS NVARCHAR(200)) + '; 
 							--Send the Message
 							SEND ON CONVERSATION @V_ConvHandle 
 								MESSAGE TYPE [DEFAULT] (@V_Message);
@@ -262,27 +269,50 @@ BEGIN
 				IF NOT EXISTS (
 					SELECT [name]
 						FROM sys.triggers
-						WHERE [name] = @V_TrigerName
+						WHERE [name] = @V_TriggerName
 				)
 					BEGIN
 						SET @V_Cmd = '
-							CREATE TRIGGER ' + quotename( @V_TrigerName ) + ' 
-							' + @V_TrigerBody ;
+							CREATE TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' 
+							' + @V_TriggerBody ;
 						EXEC sp_executesql @V_Cmd ;
 					END
 				ELSE
 					BEGIN
 						SET @V_Cmd = N'
-							ALTER TRIGGER ' + quotename( @V_TrigerName ) + ' 
-							' + @V_TrigerBody ;
+							ALTER TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' 
+							' + @V_TriggerBody ;
 						EXEC sp_executesql @V_Cmd ;
 					END
 				
 			COMMIT TRANSACTION;
-			FETCH NEXT FROM ReferencedTablesCursor INTO @V_ReferencedSchema, @V_ReferencedTable ;
+			FETCH NEXT FROM C_ReferencedTablesCursor 
+				INTO @V_ReferencedSchema, @V_ReferencedTable ;
 		END
-	CLOSE ReferencedTablesCursor ;
-	DEALLOCATE ReferencedTablesCursor ;
+	CLOSE C_ReferencedTablesCursor ;
+	DEALLOCATE C_ReferencedTablesCursor ;
+
+	SET @V_Cmd = '
+		INSERT INTO ' + QUOTENAME( @V_MainName ) + '.[SubscribersTable] (
+			[C_SubscriberString],
+			[C_SubscriptionHash],
+			[C_ProcedureSchemaName],
+			[C_ProcedureName],
+			[C_ProcedureParameters],
+			[C_TriggerNames],
+			[C_ValidTill]
+		)
+		VALUES (
+			' + QUOTENAME( @V_SubscriberString ) + ',
+			' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ',
+			' + QUOTENAME( @V_ProcedureSchemaName ) + ',
+			' + QUOTENAME( @V_ProcedureName ) + ',
+			' + @V_ProcedureParametersXlm + ',
+			' + @V_TriggerNames + ',
+			''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''',
+		) ;
+	'
+	EXEC ( @V_Cmd );
 END
 
 

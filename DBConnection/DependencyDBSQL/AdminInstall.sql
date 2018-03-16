@@ -3,6 +3,22 @@ DECLARE @V_Cmd NVARCHAR(max);
 SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
 
+DECLARE @V_CompatibilityLvl int = 0
+DECLARE @V_IsBrokerEnabled bit = 0
+SELECT @V_CompatibilityLvl = compatibility_level,
+	@V_IsBrokerEnabled = is_broker_enabled
+FROM sys.databases
+WHERE [name] = db_name();  
+
+IF( @V_CompatibilityLvl < 130)
+	BEGIN;
+		THROW 99999, 'In order of using DependencyDB package compatibility level must be greater or equal to 130. Required by STRING_SPLIT function.', 1;
+	END
+IF( @V_IsBrokerEnabled < 130)
+	BEGIN;
+		THROW 99998, 'Please enable Broker in Your DB. You can do this by query: ''ALTER DATABASE [<dbname>] SET enable_broker WITH ROLLBACK IMMEDIATE;''', 1;
+	END
+
 -- Create or ReCreate DependencyDB login
 BEGIN TRANSACTION
 	IF EXISTS (
@@ -11,12 +27,12 @@ BEGIN TRANSACTION
 		WHERE name = @V_MainName)
 		BEGIN
 			SET @V_Cmd = '
-				DROP LOGIN ' + quotename(@V_MainName) + ';
+				DROP LOGIN ' + QUOTENAME(@V_MainName) + ';
 			'
 			EXEC ( @V_Cmd );
 		END
 	SET @V_Cmd = '
-		CREATE LOGIN ' + quotename(@V_MainName) + '
+		CREATE LOGIN ' + QUOTENAME(@V_MainName) + '
 			WITH PASSWORD = ''{1}'', 
 			CHECK_EXPIRATION = OFF, 
 			CHECK_POLICY = OFF;
@@ -32,7 +48,7 @@ IF NOT EXISTS (
 	BEGIN
 		-- The schema must be run in its own batch!
 		SET @V_Cmd = '
-			CREATE SCHEMA ' + quotename(@V_MainName) + ';
+			CREATE SCHEMA ' + QUOTENAME(@V_MainName) + ';
 		'
 		EXEC( @V_Cmd );
 	END
@@ -46,9 +62,9 @@ IF NOT EXISTS (
 		type = 'S')
 	BEGIN
 		SET @V_Cmd = '
-			CREATE USER ' + quotename(@V_MainName) + '
-				FOR LOGIN ' + quotename(@V_MainName) + '
-				WITH DEFAULT_SCHEMA = ' + quotename(@V_MainName) +';
+			CREATE USER ' + QUOTENAME(@V_MainName) + '
+				FOR LOGIN ' + QUOTENAME(@V_MainName) + '
+				WITH DEFAULT_SCHEMA = ' + QUOTENAME(@V_MainName) +';
 		'
 		EXEC( @V_Cmd);
 	END
@@ -79,11 +95,11 @@ IF NOT EXISTS (
 
 -- Grant Provilages
 SET @V_Cmd = '
-	ALTER AUTHORIZATION ON SCHEMA::' + quotename(@V_MainName)  + ' TO  ' + quotename(@V_MainName) + ';
-	GRANT CREATE PROCEDURE TO ' + quotename(@V_MainName)  + '; 
-	GRANT SUBSCRIBE QUERY NOTIFICATIONS TO ' + quotename(@V_MainName)  + ';
-	GRANT CONTROL ON CONTRACT::[DEFAULT] TO ' + quotename(@V_MainName)  + ';
-	GRANT EXECUTE ON TYPE::[dbo].[TYPE_ParametersType] TO ' + quotename(@V_MainName)  + ';
+	ALTER AUTHORIZATION ON SCHEMA::' + QUOTENAME(@V_MainName)  + ' TO  ' + QUOTENAME(@V_MainName) + ';
+	GRANT CREATE PROCEDURE TO ' + QUOTENAME(@V_MainName)  + '; 
+	GRANT SUBSCRIBE QUERY NOTIFICATIONS TO ' + QUOTENAME(@V_MainName)  + ';
+	GRANT CONTROL ON CONTRACT::[DEFAULT] TO ' + QUOTENAME(@V_MainName)  + ';
+	GRANT EXECUTE ON TYPE::[dbo].[TYPE_ParametersType] TO ' + QUOTENAME(@V_MainName)  + ';
 '
 EXEC( @V_Cmd );
 
@@ -96,7 +112,7 @@ IF NOT EXISTS (
 		WHERE name = @V_QueueName)
 	BEGIN
 		SET @V_Cmd = '
-			CREATE QUEUE ' + quotename(@V_MainName) + '.' + quotename(@V_QueueName) + ';
+			CREATE QUEUE ' + QUOTENAME(@V_MainName) + '.' + QUOTENAME(@V_QueueName) + ';
 		'
 		EXEC ( @V_Cmd );
 	END
@@ -110,8 +126,8 @@ IF NOT EXISTS(
 		WHERE name = @V_ServiceName)
 	BEGIN
 		SET @V_Cmd = '
-		CREATE SERVICE ' + quotename(@V_ServiceName) + ' 
-		ON QUEUE ' + quotename(@V_MainName) + '.' + quotename(@V_QueueName) + '
+		CREATE SERVICE ' + QUOTENAME(@V_ServiceName) + ' 
+		ON QUEUE ' + QUOTENAME(@V_MainName) + '.' + QUOTENAME(@V_QueueName) + '
 		([DEFAULT]);
 		'
 		EXEC ( @V_Cmd );
@@ -127,21 +143,24 @@ IF NOT EXISTS(
 			AND SysSchemas.name = @V_MainName)
 	BEGIN
 		SET @V_Cmd = '
-			CREATE TABLE ' + quotename(@V_MainName) + '.[SubscribersTable] (
+			CREATE TABLE ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] (
 				[C_SubscribersTableId] INT IDENTITY(1,1) NOT NULL,
 				[C_SubscriberString] NVARCHAR(200) NOT NULL,
 				[C_SubscriptionHash] INT NOT NULL,
 				[C_ProcedureSchemaName] SYSNAME NOT NULL,
 				[C_ProcedureName] SYSNAME NOT NULL,
 				[C_ProcedureParameters] NVARCHAR(max) NOT NULL,
-				[C_ProcedureParameters] NVARCHAR(max) NOT NULL,
+				[C_TriggerNames] NVARCHAR(max) NOT NULL,
 				[C_ValidTill] DateTime NOT NULL,
 				CONSTRAINT [CS_TBL_SubscribersTable_C_SubscribersTableId] PRIMARY KEY CLUSTERED (
 					[C_SubscribersTableId] ASC
 				)
 			) ;
-			CREATE NONCLUSTERED INDEX [IND_' + @V_MainName + '_TBL_SubscribersTable_C_SubscriptionHash] ON ' + quotename(@V_MainName) + '.[SubscribersTable] (
+			CREATE NONCLUSTERED INDEX [IND_' + @V_MainName + '_TBL_SubscribersTable_C_SubscriptionHash] ON ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] (
 				[C_SubscriptionHash] ASC
+			) ;
+			CREATE NONCLUSTERED INDEX [IND_' + @V_MainName + '_TBL_SubscribersTable_C_ValidTill] ON ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] (
+				[C_ValidTill] ASC
 			) ;
 		'
 		EXEC ( @V_Cmd );

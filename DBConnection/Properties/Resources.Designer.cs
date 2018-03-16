@@ -62,12 +62,15 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;DependencyDB&apos;;
-        ///DECLARE @V_Cmd nvarchar(2000);
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
+        ///DECLARE @V_SchemaName SYSNAME = &apos;{1}&apos;;
         ///
         ///SET @V_Cmd = &apos;
-        ///	GRANT ALTER ON SCHEMA::{0} TO &apos; + quotename(@V_MainName)  + &apos;;
-        ///	GRANT SELECT ON SCHEMA::{0} TO &apos; + quotename(@V_MainName)  + &apos;;
+        ///	GRANT ALTER ON SCHEMA::&apos; + quotename( @V_SchemaName ) + &apos; TO &apos; + quotename(@V_MainName)  + &apos;;
+        ///	GRANT SELECT ON SCHEMA::&apos; + quotename( @V_SchemaName ) + &apos; TO &apos; + quotename(@V_MainName)  + &apos;;
         ///&apos;
         ///EXEC( @V_Cmd );.
         /// </summary>
@@ -78,8 +81,10 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;{0}&apos;;
-        ///DECLARE @V_Cmd nvarchar(2000);
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
         ///
         ///-- Create or ReCreate DependencyDB login
         ///BEGIN TRANSACTION
@@ -89,16 +94,15 @@ namespace DBConnection.Properties {
         ///		WHERE name = @V_MainName)
         ///		BEGIN
         ///			SET @V_Cmd = &apos;
-        ///				DROP LOGIN &apos; + quotename(@V_MainName)
+        ///				DROP LOGIN &apos; + quotename(@V_MainName) + &apos;;
+        ///			&apos;
         ///			EXEC ( @V_Cmd );
         ///		END
         ///	SET @V_Cmd = &apos;
         ///		CREATE LOGIN &apos; + quotename(@V_MainName) + &apos;
         ///			WITH PASSWORD = &apos;&apos;{1}&apos;&apos;, 
         ///			CHECK_EXPIRATION = OFF, 
-        ///			CHECK_POLICY = OFF&apos;
-        ///	EXEC ( @V_Cmd )
-        ///COMMIT TRANSACTION        /// [rest of string was truncated]&quot;;.
+        ///			CHE [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminInstall {
             get {
@@ -107,14 +111,17 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;DependencyDB&apos;
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
+        ///DECLARE @V_SchemaName SYSNAME = &apos;{1}&apos;;
         ///
         ///SET @V_Cmd = &apos;
-        ///	REVOKE ALTER ON SCHEMA::{0} TO &apos; + quotename(@V_MainName)  + &apos;;
-        ///	REVOKE SELECT ON SCHEMA::{0} TO &apos; + quotename(@V_MainName)  + &apos;;
+        ///	REVOKE ALTER ON SCHEMA::&apos; + quotename( @V_SchemaName ) + &apos; TO &apos; + quotename(@V_MainName)  + &apos;;
+        ///	REVOKE SELECT ON SCHEMA::&apos; + quotename( @V_SchemaName ) + &apos; TO &apos; + quotename(@V_MainName)  + &apos;;
         ///&apos;
-        ///EXEC( @V_Cmd);
-        ///GO.
+        ///EXEC( @V_Cmd );.
         /// </summary>
         public static string AdminRemoveObservedShema {
             get {
@@ -123,24 +130,27 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;DependencyDB&apos;
-        ///DECLARE @V_Cmd nvarchar(2000)
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
         ///
-        ///-- Do not disable brooker as other things in db may require it
-        ///-- do not drop Route as it may be required by other things
-        ///-- TODO remove active subscriptions
+        ///-- Remove Table
+        ///IF EXISTS(
+        ///	SELECT SysTables.name
+        ///		FROM sys.tables AS SysTables
+        ///		INNER JOIN sys.schemas AS SysSchemas
+        ///			ON SysSchemas.schema_id = SysTables.schema_id
+        ///		WHERE SysTables.name = &apos;SubscribersTable&apos;
+        ///			AND SysSchemas.name = @V_MainName)
+        ///	BEGIN
+        ///		SET @V_Cmd = &apos;
+        ///			DROP TABLE &apos; + quotename(@V_MainName) + &apos;.[SubscribersTable] ;
+        ///		&apos;
+        ///		EXEC ( @V_Cmd );
+        ///	END
         ///
-        ///-- Remove UserDefined type required by DependencyDb
-        ///SET @V_Cmd = &apos;
-        ///	IF EXISTS (
-        ///		SELECT name 
-        ///		FROM sys.types 
-        ///		WHERE 
-        ///			is_table_type = 1 AND 
-        ///			name = &apos;&apos;SpParametersType&apos;&apos;)
-        ///	DROP TYPE &apos; + quotename(@V_MainName)  + &apos;.[SpParametersType]
-        ///	GO&apos;
-        ///EXEC( @V_Cmd) [rest of string was truncated]&quot;;.
+        ///-- Remove S [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminUnInstall {
             get {
@@ -149,82 +159,52 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to USE [sgdb]
-        ///GO
-        ////****** Object:  StoredProcedure [NotificationBroker].[ListenerInstall]    Script Date: 2018-03-14 15:07:24 ******/
-        ///SET ANSI_NULLS ON
-        ///GO
-        ///SET QUOTED_IDENTIFIER ON
-        ///GO
-        ///ALTER PROCEDURE [DependencyDB].[Install]
-        ///	@AppName NVARCHAR(110), -- max object name length is 128 ex. &apos;MemSourceAPI&apos;
-        ///	@SubscriberString NVARCHAR(128), -- ex. &apos;A_JobPart_Select&apos;
-        ///	@ProcedureSchemaName NVARCHAR(128),
-        ///	@ProcedureName NVARCHAR(128),
-        ///	@ProcedureParameters dbo.SpParametersType READONLY, -- ex. &apos;dbo&apos;
-        ///	@ValidF [rest of string was truncated]&quot;;.
+        ///   Looks up a localized string similar to CREATE PROCEDURE [{0}].[InstallSubscription]
+        ///	@V_SubscriberString NVARCHAR(200),
+        ///	@V_SubscriptionHash INT,
+        ///	@V_ProcedureSchemaName SYSNAME,
+        ///	@V_ProcedureName SYSNAME,
+        ///	@TBL_ProcedureParameters dbo.TYPE_ParametersType READONLY,
+        ///	@V_ValidFor INT
+        ///AS 
+        ///--DECLARE
+        ///--	@V_SubscriberString NVARCHAR(200) = &apos;TestSubscriberString&apos;,
+        ///--	@V_SubscriptionHash INT = &apos;1234564&apos;,
+        ///--	@V_ProcedureSchemaName SYSNAME = &apos;dbo&apos;,
+        ///--	@V_ProcedureName SYSNAME = &apos;TestProcedure&apos;,
+        ///--	@TBL_ProcedureParameters dbo.TYPE_ParametersT [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string DependencyDB_Install {
+        public static string DependencyDB_InstallSubscription {
             get {
-                return ResourceManager.GetString("DependencyDB_Install", resourceCulture);
+                return ResourceManager.GetString("DependencyDB_InstallSubscription", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 
-        ///SET ANSI_NULLS ON
-        ///GO
-        ///SET QUOTED_IDENTIFIER ON
-        ///GO
-        ///
-        ///CREATE PROCEDURE [DependencyDB].[ReceiveNotification]
-        ///	@AppName NVARCHAR(200),
-        ///	@ReceiveTimeout int
-        ///AS
-        ///BEGIN
-        ///	DECLARE @ListenerQueue NVARCHAR(200)
-        ///	SET @ListenerQueue = N&apos;Queue_&apos; + @AppName
-        ///
-        ///	DECLARE @Listenercmd NVARCHAR(MAX)
-        ///    -- Create a queue which will hold the tracked information 
-        ///    IF NOT EXISTS (
-        ///		SELECT name
-        ///			FROM sys.service_queues 
-        ///			WHERE name = @ListenerQueue
-        ///	)
-        ///		BEGIN
-        ///			SET @Listenercmd = null
-        ///			SET @Listenerc [rest of string was truncated]&quot;;.
-        /// </summary>
-        public static string DependencyDB_ReceiveNotification {
-            get {
-                return ResourceManager.GetString("DependencyDB_ReceiveNotification", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to 
-        ///SET ANSI_NULLS ON
-        ///GO
-        ///SET QUOTED_IDENTIFIER ON
-        ///GO
-        ///
-        ///ALTER PROCEDURE [DependencyDB].[Uninstall]
-        ///	@AppName NVARCHAR(110), -- max object name length is 128 ex. &apos;MemSourceAPI&apos;
-        ///	@SubscriberString NVARCHAR(128), -- ex. &apos;A_JobPart_Select&apos;
-        ///	@ProcedureSchemaName NVARCHAR(128),
-        ///	@ProcedureName NVARCHAR(128),
-        ///	@ProcedureParameters dbo.SpParametersType READONLY
+        ///   Looks up a localized string similar to CREATE PROCEDURE [{0}].[ReceiveSubscription]
+        ///	@V_ReceiveTimeout int
         ///AS
         ///BEGIN
         ///
-        ///	DECLARE @ListenerQueue NVARCHAR(128)
-        ///	SET @ListenerQueue = N&apos;ListenerQueue_&apos; + @ListenerAppName
-        ///	DECLARE @ListenerService NVARCHAR(12 [rest of string was truncated]&quot;;.
+        ///	DECLARE @V_MainName SYSNAME = &apos;{0}&apos; ;
+        ///	DECLARE @V_Cmd NVARCHAR(max);
+        ///
+        ///	DECLARE @V_Queue SYSNAME ;
+        ///	SET @V_Queue =  &apos;Queue_&apos; + @V_MainName ;
+        ///
+        ///	-- Start Listening
+        ///	SET @V_Cmd = &apos;
+        ///		DECLARE @V_ConvHandle UNIQUEIDENTIFIER
+        ///        DECLARE @V_Message VARBINARY(MAX) 
+        ///		DECLARE @V_MessageTypeId int = 2 -- end conversation msg
+        ///		DECLARE @V_ConnectionState varchar(2)
+        ///		DECLARE @V_IsFound bit
+        ///		WHILE @messageTypeId = 2
+        ///		 [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string DependencyDB_Uninstall {
+        public static string DependencyDB_ReceiveSubscription {
             get {
-                return ResourceManager.GetString("DependencyDB_Uninstall", resourceCulture);
+                return ResourceManager.GetString("DependencyDB_ReceiveSubscription", resourceCulture);
             }
         }
         
@@ -253,6 +233,33 @@ namespace DBConnection.Properties {
         public static string DependencyDB_UninstallAll {
             get {
                 return ResourceManager.GetString("DependencyDB_UninstallAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to CREATE PROCEDURE [{0}].[UninstallSubscription]
+        ///	@V_SubscriberString NVARCHAR(200) = null,
+        ///	@V_SubscriptionHash INT = null,
+        ///	@V_ProcedureSchemaName SYSNAME = null,
+        ///	@V_ProcedureName SYSNAME = null,
+        ///	@TBL_ProcedureParameters dbo.TYPE_ParametersType READONLY
+        ///AS
+        ///BEGIN
+        ///
+        ///	DECLARE @V_MainName SYSNAME = &apos;{0}&apos; ;
+        ///	DECLARE @V_Cmd NVARCHAR(max);
+        ///
+        ///	DECLARE @V_Queue SYSNAME ;
+        ///	SET @V_Queue =  &apos;Queue_&apos; + @V_MainName ;
+        ///
+        ///	DECLARE @V_Service SYSNAME ;
+        ///	SET @V_Service = &apos;Service_&apos; + @V_MainName ;
+        ///
+        ///	DECLARE @ [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string DependencyDB_UninstallSubscription {
+            get {
+                return ResourceManager.GetString("DependencyDB_UninstallSubscription", resourceCulture);
             }
         }
     }

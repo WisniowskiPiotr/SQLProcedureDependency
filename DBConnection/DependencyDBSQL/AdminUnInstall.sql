@@ -13,7 +13,7 @@ IF EXISTS(
 			AND SysSchemas.name = @V_MainName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP TABLE ' + quotename(@V_MainName) + '.[SubscribersTable] ;
+			DROP TABLE ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] ;
 		'
 		EXEC ( @V_Cmd );
 	END
@@ -27,7 +27,7 @@ IF EXISTS(
 		WHERE name = @V_ServiceName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP SERVICE ' + quotename(@V_ServiceName) + '; 
+			DROP SERVICE ' + QUOTENAME(@V_ServiceName) + '; 
 		'
 		EXEC ( @V_Cmd );
 	END
@@ -41,7 +41,7 @@ IF EXISTS (
 		WHERE name = @V_QueueName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP QUEUE ' + quotename(@V_MainName) + '.' + quotename(@V_QueueName) + ';
+			DROP QUEUE ' + QUOTENAME(@V_MainName) + '.' + QUOTENAME(@V_QueueName) + ';
 		'
 		EXEC ( @V_Cmd );
 	END
@@ -64,7 +64,7 @@ IF EXISTS (
 	WHERE name = @V_MainName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP SCHEMA ' + quotename(@V_MainName) + ';
+			DROP SCHEMA ' + QUOTENAME(@V_MainName) + ';
 		'
 		EXEC( @V_Cmd );
 	END
@@ -78,7 +78,7 @@ IF EXISTS (
 		type = 'S')
 	BEGIN
 		SET @V_Cmd = '
-			DROP USER ' + quotename(@V_MainName) + ';
+			DROP USER ' + QUOTENAME(@V_MainName) + ';
 		'
 		EXEC( @V_Cmd );
 	END
@@ -90,7 +90,7 @@ IF EXISTS (
 	WHERE name = @V_MainName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP LOGIN ' + quotename(@V_MainName) + ';
+			DROP LOGIN ' + QUOTENAME(@V_MainName) + ';
 		'
 		EXEC( @V_Cmd );
 	END

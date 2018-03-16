@@ -17,24 +17,24 @@ BEGIN
 	
 	DECLARE @cmd NVARCHAR(MAX)
 	-- drop triggers
-	DECLARE @triger NVARCHAR(128)
-	DECLARE trigerCursor CURSOR FOR
+	DECLARE @Trigger NVARCHAR(128)
+	DECLARE TriggerCursor CURSOR FOR
 		SELECT [name]
 			FROM sys.triggers
 			WHERE [name] like @ListenerAppName + N'_%' 
-	OPEN trigerCursor
-	FETCH NEXT FROM trigerCursor
-		INTO @triger
+	OPEN TriggerCursor
+	FETCH NEXT FROM TriggerCursor
+		INTO @Trigger
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 			SET @cmd = N'
-				DROP TRIGGER [' + @triger + N'] '
+				DROP TRIGGER [' + @Trigger + N'] '
 			EXEC sp_executesql @cmd
 
-			FETCH NEXT FROM trigerCursor INTO @triger
+			FETCH NEXT FROM TriggerCursor INTO @Trigger
 		END
-	CLOSE trigerCursor;
-	DEALLOCATE trigerCursor;
+	CLOSE TriggerCursor;
+	DEALLOCATE TriggerCursor;
 
 	-- drop service
 	DECLARE @serviceId INT

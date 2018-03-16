@@ -3,6 +3,36 @@ DECLARE @V_Cmd NVARCHAR(max);
 SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
 
+-- Uninstall all triggers
+SET @V_Cmd = '
+	DECLARE @TBL_ProcedureParameters dbo.TYPE_ParametersType ;
+	INSERT INTO @TBL_ProcedureParameters (
+		PName,
+		PType,
+		PValue
+	)
+	VALUES (
+		''@V_RemoveAllParameters'',
+		''INT'',
+		''1''
+	)
+	EXEC ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] 
+		@V_SubscriberString = null, 
+		@V_SubscriptionHash = null, 
+		@V_ProcedureSchemaName = null, 
+		@V_ProcedureName = null, 
+		@TBL_ProcedureParameters = @TBL_ProcedureParameters ;
+'
+EXEC ( @V_Cmd );
+
+-- Uninstall all procedures
+SET @V_Cmd = '
+	DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[InstallSubscription] ;
+	DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[ReceiveSubscription] ;
+	DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] ;
+'
+EXEC ( @V_Cmd );
+
 -- Remove Table
 IF EXISTS(
 	SELECT SysTables.name

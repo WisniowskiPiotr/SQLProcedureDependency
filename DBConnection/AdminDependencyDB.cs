@@ -76,6 +76,7 @@ namespace DBConnection
         /// <param name="allow"> If true grants provilages. Othervise revoke provilages. </param>
         public void AdminInstallObservedShema(string observedShema, string mainServiceName = "DependencyDB", bool allow = true)
         {
+            // TODO: maybe it should be better to add provilages only to observed procedure and required tables?
             TestName(mainServiceName);
             string sqlCommandText;
             if (allow)

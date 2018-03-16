@@ -89,7 +89,7 @@ IF NOT EXISTS (
 		CREATE TYPE [dbo].[TYPE_ParametersType] 
 			AS TABLE(
 			[PName] [nvarchar](100) NULL,
-			[Ptype] [nvarchar](20) NULL,
+			[PType] [nvarchar](20) NULL,
 			[PValue] [nvarchar](100) NULL);
 	END
 

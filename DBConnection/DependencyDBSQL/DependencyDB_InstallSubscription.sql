@@ -146,7 +146,7 @@ BEGIN
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 		
-			SET @V_TriggerName =  @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200))  ;
+			SET @V_TriggerName =  @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
 			SET @V_TriggerNames = @V_TriggerNames + QUOTENAME( @V_TriggerName ) + ';'
 			SET @V_ReferencedQuotedTable = QUOTENAME( @V_ReferencedSchema ) + '.' + QUOTENAME( @V_ReferencedTable )
 			SET @V_ReferencedNonQuotedTable = @V_ReferencedSchema + '.' + @V_ReferencedTable
@@ -226,29 +226,49 @@ BEGIN
 					IF @V_MessageInserted IS NOT NULL 
 						OR @V_MessageDeleted IS NOT NULL
 						BEGIN
-							-- create final message
-							SET @V_Message = ''<notification subscriberstring="">''
-							SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''
-							IF @V_MessageInserted IS NOT NULL 
-								SET @V_Message = @V_Message + @V_MessageInserted
-							IF @V_MessageDeleted IS NOT NULL 
-								SET @V_Message = @V_Message + @V_MessageDeleted
-							SET @V_Message = @V_Message + ''</notification>''
+							DECLARE @V_SubscriberString NVARCHAR(200) ;
+							DECLARE CU_SubscribersCursor CURSOR FOR
+								SELECT SubscribersTable.C_SubscriberString
+								FROM ' + QUOTENAME( @V_MainName ) + '.[SubscribersTable]
+								WHERE SubscribersTable.C_SubscriptionHash = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
+									AND SubscribersTable.C_ProcedureSchemaName = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''
+									AND SubscribersTable.C_ProcedureName = ''' + QUOTENAME( @V_ProcedureName ) + '''
+									AND SubscribersTable.C_ProcedureParameters = ''' + @V_ProcedureParametersXlm + '''
+									AND SubscribersTable.C_ValidTill > GETDATE() ;
 
-							--Beginning of dialog...
-                			DECLARE @V_ConvHandle UNIQUEIDENTIFIER
-                			--Determine the Initiator Service, Target Service and the Contract 
-                			BEGIN DIALOG @V_ConvHandle 
-								FROM SERVICE ' + QUOTENAME( @V_Service ) + ' 
-								TO SERVICE ''' + QUOTENAME( @V_Service ) + ''' 
-								ON CONTRACT [DEFAULT] 
-								WITH ENCRYPTION = OFF, 
-								LIFETIME = ' + CAST( @V_NotificationValidFor AS NVARCHAR(200)) + '; 
-							--Send the Message
-							SEND ON CONVERSATION @V_ConvHandle 
-								MESSAGE TYPE [DEFAULT] (@V_Message);
-							--End conversation
-							END CONVERSATION @V_ConvHandle;
+							OPEN CU_SubscribersCursor ;
+							FETCH NEXT FROM CU_SubscribersCursor 
+								INTO @V_SubscriberString ;
+							WHILE @@FETCH_STATUS = 0 
+								BEGIN
+									-- create final message
+									SET @V_Message = ''<notification subscriberstring="'' + @V_SubscriberString + ''">''
+									SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''
+									IF @V_MessageInserted IS NOT NULL 
+										SET @V_Message = @V_Message + @V_MessageInserted
+									IF @V_MessageDeleted IS NOT NULL 
+										SET @V_Message = @V_Message + @V_MessageDeleted
+									SET @V_Message = @V_Message + ''</notification>''
+
+									--Beginning of dialog...
+                					DECLARE @V_ConvHandle UNIQUEIDENTIFIER
+                					--Determine the Initiator Service, Target Service and the Contract 
+                					BEGIN DIALOG @V_ConvHandle 
+										FROM SERVICE ' + QUOTENAME( @V_Service ) + ' 
+										TO SERVICE ''' + QUOTENAME( @V_Service ) + ''' 
+										ON CONTRACT [DEFAULT] 
+										WITH ENCRYPTION = OFF, 
+										LIFETIME = ' + CAST( @V_NotificationValidFor AS NVARCHAR(200)) + '; 
+									--Send the Message
+									SEND ON CONVERSATION @V_ConvHandle 
+										MESSAGE TYPE [DEFAULT] (@V_Message);
+									--End conversation
+									END CONVERSATION @V_ConvHandle;
+									FETCH NEXT FROM CU_SubscribersCursor 
+										INTO @V_SubscriberString ;
+								END
+							CLOSE CU_SubscribersCursor ;
+							DEALLOCATE CU_SubscribersCursor ;
 						END
 				END 
 			' ;

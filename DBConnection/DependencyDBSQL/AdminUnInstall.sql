@@ -4,32 +4,85 @@ SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
 
 -- Uninstall all triggers
-SET @V_Cmd = '
-	DECLARE @TBL_ProcedureParameters dbo.TYPE_ParametersType ;
-	INSERT INTO @TBL_ProcedureParameters (
-		PName,
-		PType,
-		PValue
+IF EXISTS (
+	SELECT SysTypes.name 
+	FROM sys.types AS SysTypes
+	INNER JOIN sys.schemas AS SysSchemas
+		ON SysSchemas.schema_id = SysTypes.schema_id
+		AND SysSchemas.name = 'dbo'
+	WHERE 
+		SysTypes.is_table_type = 1  
+		AND SysTypes.name = 'TYPE_ParametersType')
+	AND
+	EXISTS (
+		SELECT SysProcedures.name
+		FROM sys.procedures AS SysProcedures
+		INNER JOIN sys.schemas AS SysSchemas
+			ON SysSchemas.schema_id = SysProcedures.schema_id
+			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_MainName)
+		WHERE SysProcedures.name = 'UninstallSubscription'
 	)
-	VALUES (
-		''@V_RemoveAllParameters'',
-		''INT'',
-		''1''
-	)
-	EXEC ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] 
-		@V_SubscriberString = null, 
-		@V_SubscriptionHash = null, 
-		@V_ProcedureSchemaName = null, 
-		@V_ProcedureName = null, 
-		@TBL_ProcedureParameters = @TBL_ProcedureParameters ;
-'
-EXEC ( @V_Cmd );
+	BEGIN
+			
+		SET @V_Cmd = '
+			DECLARE @TBL_ProcedureParameters dbo.TYPE_ParametersType ;
+			INSERT INTO @TBL_ProcedureParameters (
+				PName,
+				PType,
+				PValue
+			)
+			VALUES (
+				''@V_RemoveAllParameters'',
+				''INT'',
+				''1''
+			)
+			EXEC ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] 
+				@V_SubscriberString = null, 
+				@V_SubscriptionHash = null, 
+				@V_ProcedureSchemaName = null, 
+				@V_ProcedureName = null, 
+				@TBL_ProcedureParameters = @TBL_ProcedureParameters ;
+		'
+		EXEC ( @V_Cmd );
+
+	END
+
 
 -- Uninstall all procedures
 SET @V_Cmd = '
-	DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[InstallSubscription] ;
-	DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[ReceiveSubscription] ;
-	DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] ;
+	IF EXISTS (
+		SELECT SysProcedures.name
+		FROM sys.procedures AS SysProcedures
+		INNER JOIN sys.schemas AS SysSchemas
+			ON SysSchemas.schema_id = SysProcedures.schema_id
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
+		WHERE SysProcedures.name = ''InstallSubscription''
+	)
+		BEGIN
+			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[InstallSubscription] ;
+		END
+	IF EXISTS (
+		SELECT SysProcedures.name
+		FROM sys.procedures AS SysProcedures
+		INNER JOIN sys.schemas AS SysSchemas
+			ON SysSchemas.schema_id = SysProcedures.schema_id
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
+		WHERE SysProcedures.name = ''ReceiveSubscription''
+	)
+		BEGIN
+			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[ReceiveSubscription] ;
+		END
+	IF EXISTS (
+		SELECT SysProcedures.name
+		FROM sys.procedures AS SysProcedures
+		INNER JOIN sys.schemas AS SysSchemas
+			ON SysSchemas.schema_id = SysProcedures.schema_id
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
+		WHERE SysProcedures.name = ''UninstallSubscription''
+	)
+		BEGIN
+			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] ;
+		END
 '
 EXEC ( @V_Cmd );
 
@@ -77,15 +130,19 @@ IF EXISTS (
 	END
 
 -- Remove TYPE_ParametersType
-IF EXISTS (
-	SELECT name 
-	FROM sys.types 
-	WHERE 
-		is_table_type = 1 AND 
-		name = 'TYPE_ParametersType')
-	BEGIN
-		DROP TYPE [dbo].[TYPE_ParametersType];
-	END
+BEGIN TRY
+	IF EXISTS (
+		SELECT name 
+		FROM sys.types 
+		WHERE 
+			is_table_type = 1 AND 
+			name = 'TYPE_ParametersType')
+		BEGIN
+			DROP TYPE [dbo].[TYPE_ParametersType];
+		END
+END TRY
+BEGIN CATCH
+END CATCH
 
 -- Remove shema
 IF EXISTS (

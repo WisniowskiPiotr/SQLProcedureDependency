@@ -1,4 +1,4 @@
-CREATE PROCEDURE [{0}].[ReceiveSubscription]
+ PROCEDURE [{0}].[ReceiveSubscription]
 	@V_ReceiveTimeout int = 150000 -- After 5 min retry getting message from queue.
 AS 
 --DECLARE
@@ -43,6 +43,6 @@ BEGIN
 			END
         SELECT CAST( @V_Message AS NVARCHAR(MAX) ) ;
 		'
-	EXEC sp_executesql @Listenercmd ;
+	EXEC sp_executesql @V_Cmd ;
 	RETURN 0 ;
 END ;

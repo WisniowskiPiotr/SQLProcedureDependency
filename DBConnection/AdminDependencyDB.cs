@@ -35,38 +35,34 @@ namespace DBConnection
         public void AdminInstall( string password, string mainServiceName = "DependencyDB", string observedShema="dbo")
         {
             TestName(mainServiceName);
-            string slqCommandText;
-            SqlCommand sqlCommand;
 
-            slqCommandText = string.Format(
+            string instalProcedureText = string.Format(
+                Resources.DependencyDB_InstallSubscription,
+                mainServiceName,
+                "Service" + mainServiceName).Replace("'","''");
+
+            string receiveProcedureText = string.Format(
+                Resources.DependencyDB_ReceiveSubscription,
+                mainServiceName,
+                "Service" + mainServiceName).Replace("'", "''");
+
+            string uninstalProcedureText = string.Format(
+                Resources.DependencyDB_UninstallSubscription,
+                mainServiceName,
+                "Service" + mainServiceName).Replace("'", "''");
+
+            string slqCommandText = string.Format(
                 Resources.AdminInstall,
                 mainServiceName,
-                password);
-            sqlCommand = new SqlCommand(slqCommandText);
+                password,
+                instalProcedureText,
+                receiveProcedureText,
+                uninstalProcedureText
+                );
+            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
             AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             AdminInstallObservedShema(observedShema);
-
-            slqCommandText = string.Format(
-                Resources.DependencyDB_InstallSubscription,
-                mainServiceName,
-                "Service" + mainServiceName);
-            sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
-
-            slqCommandText = string.Format(
-                Resources.DependencyDB_ReceiveSubscription,
-                mainServiceName,
-                "Service" + mainServiceName);
-            sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
-
-            slqCommandText = string.Format(
-                Resources.DependencyDB_UninstallSubscription,
-                mainServiceName,
-                "Service" + mainServiceName);
-            sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }
 
         /// <summary>

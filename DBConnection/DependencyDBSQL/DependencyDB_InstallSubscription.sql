@@ -1,4 +1,4 @@
-CREATE PROCEDURE [{0}].[InstallSubscription]
+ PROCEDURE [{0}].[InstallSubscription]
 	@V_SubscriberString NVARCHAR(200),
 	@V_SubscriptionHash INT,
 	@V_ProcedureSchemaName SYSNAME,

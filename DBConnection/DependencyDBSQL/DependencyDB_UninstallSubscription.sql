@@ -1,4 +1,4 @@
-CREATE PROCEDURE [{0}].[UninstallSubscription]
+ PROCEDURE [{0}].[UninstallSubscription]
 	@V_SubscriberString NVARCHAR(200) = null,
 	@V_SubscriptionHash INT = null,
 	@V_ProcedureSchemaName SYSNAME = null,
@@ -33,7 +33,7 @@ BEGIN
 		END
 
 	DECLARE @TBL_SubscribersToBeRemoved TABLE (
-		[C_SubscribersTableId] INT IDENTITY(1,1) NOT NULL,
+		[C_SubscribersTableId] INT NOT NULL,
 		[C_SubscriberString] NVARCHAR(200) NOT NULL,
 		[C_SubscriptionHash] INT NOT NULL,
 		[C_ProcedureSchemaName] SYSNAME NOT NULL,
@@ -75,7 +75,7 @@ BEGIN
 	) ;
 
 	-- for each affected table
-	DECLARE @V_SubscriberString NVARCHAR(max) ;
+	DECLARE @V_RemovedSubscriberString NVARCHAR(max) ;
 	DECLARE @V_ProcedureParameters NVARCHAR(max) ;
 	DECLARE @V_TriggerNames NVARCHAR(max) ;
 	DECLARE @V_Message NVARCHAR(MAX) ;
@@ -83,21 +83,21 @@ BEGIN
 	DECLARE CU_SubscribersToBeRemovedCursor CURSOR FOR
 		SELECT TBL_SubscribersToBeRemoved.C_SubscriberString,
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
-			TBL_SubscribersToBeRemoved.TriggerNames
+			TBL_SubscribersToBeRemoved.C_TriggerNames
 		FROM @TBL_SubscribersToBeRemoved AS TBL_SubscribersToBeRemoved
 		GROUP BY TBL_SubscribersToBeRemoved.C_SubscriberString,
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
-			TBL_SubscribersToBeRemoved.TriggerNames;
+			TBL_SubscribersToBeRemoved.C_TriggerNames;
 
 	OPEN CU_SubscribersToBeRemovedCursor ;
 	FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 
-		INTO @V_SubscriberString, 
+		INTO @V_RemovedSubscriberString, 
 			@V_ProcedureParameters, 
 			@V_TriggerNames ;
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 			-- Notify subscriber
-			SET @V_Message = '<unsubscribed subscriberstring="' + @V_SubscriberString + '">'
+			SET @V_Message = '<unsubscribed subscriberstring="' + @V_RemovedSubscriberString + '">'
 			SET @V_Message = @V_Message + @V_ProcedureParameters
 			SET @V_Message = @V_Message + '</unsubscribed>'
 
@@ -128,7 +128,7 @@ BEGIN
 					AND TBL_Objects.type_desc = 'USER_TABLE'
 				INNER JOIN sys.schemas AS TBL_Schemas
 					ON TBL_Schemas.schema_id = TBL_Objects.schema_id
-				GROUP BY TTBL_TriggerNames.value,
+				GROUP BY TBL_Triggers.name,
 					TBL_Objects.name,
 					TBL_Schemas.name ;
 
@@ -148,11 +148,11 @@ BEGIN
 						FROM ' + QUOTENAME( @V_TableSchemaName ) + '.' + QUOTENAME( @V_TableName ) + '
 						WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
 					' ;
-					EXEC sp_executesql @cmd
+					EXEC sp_executesql @V_Cmd
 
-					SET @cmd = '
+					SET @V_Cmd = '
 						DROP TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' ; '
-					EXEC sp_executesql @cmd
+					EXEC sp_executesql @V_Cmd
 
 					COMMIT TRANSACTION;
 
@@ -165,7 +165,7 @@ BEGIN
 			DEALLOCATE CU_TriggersToBeRemovedCursor ;
 
 			FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 
-				INTO @V_SubscriberString, 
+				INTO @V_RemovedSubscriberString, 
 					@V_ProcedureParameters, 
 					@V_TriggerNames ;
 		END

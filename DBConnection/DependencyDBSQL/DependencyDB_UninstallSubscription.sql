@@ -86,7 +86,6 @@ BEGIN
 	DECLARE @V_TriggerNames NVARCHAR(max) ;
 	DECLARE @V_Message NVARCHAR(MAX) ;
 	DECLARE @V_RemoveTriggers BIT = 0 ;
-	DECLARE @V_ReferencedTableType SYSNAME ;
 
 	DECLARE CU_SubscribersToBeRemovedCursor CURSOR FOR
 		SELECT TBL_SubscribersToBeRemoved.C_SubscriberString,
@@ -177,22 +176,7 @@ BEGIN
 					CLOSE CU_TriggersToBeRemovedCursor ;
 					DEALLOCATE CU_TriggersToBeRemovedCursor ;
 
-					SET @V_ReferencedTableType = 'TYPE_' + @V_TableSchemaName + '_' + @V_TableName;
-					IF EXISTS (
-						SELECT SysTypes.name 
-						FROM sys.types AS SysTypes
-						INNER JOIN sys.schemas AS SysSchemas
-							ON SysSchemas.schema_id = SysTypes.schema_id
-							AND SysSchemas.name = @V_TableSchemaName
-						WHERE 
-							SysTypes.is_table_type = 1  
-							AND SysTypes.name = @V_TableName
-					)
-						BEGIN
-							SET @V_Cmd = '
-								DROP TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' ; ' ;
-							EXEC sp_executesql @V_Cmd ;
-						END
+					
 			END
 
 			FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 

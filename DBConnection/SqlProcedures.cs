@@ -50,7 +50,7 @@ namespace DBConnection
         {
             SqlCommand command = new SqlCommand(ProcedureNameReceiveNotification);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ReceiveTimeout", SqlDbType.Int, receiveTimeout));
-            List<EventMessage> result = AccessDBInstance.SQLRunQueryProcedure<EventMessage>(command);
+            List<EventMessage> result = AccessDBInstance.SQLRunQueryProcedure<EventMessage>(command, receiveTimeout);
             return result;
         }
         

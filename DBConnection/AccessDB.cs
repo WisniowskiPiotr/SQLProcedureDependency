@@ -34,14 +34,15 @@ namespace DBConnection
         /// Connects and executes sql procedure with returning a list of objects.
         /// </summary>
         /// <param name="command"> SqlCommand used for query. CommandText and Parameters must be set properly. </param>
+        /// <param name="sqlQueryTimeout"> Timeout used for query. Default value uses value set in constructor. </param>
         /// <param name="disposeCommand"> If true command will be disposed after execution. Default: true. </param>
         /// <returns> List of objects constructed from each row returned from DB. </returns>
-        public List<T> SQLRunQueryProcedure<T>(SqlCommand command, bool disposeCommand = true)
+        public List<T> SQLRunQueryProcedure<T>(SqlCommand command, int sqlQueryTimeout = 0, bool disposeCommand = true)
         {
             List<T> collection = new List<T>();
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
-                PrepareSQLCommand(command, connection);
+                PrepareSQLCommand(command, connection, sqlQueryTimeout);
                 try
                 {
                     command.Connection.Open();
@@ -73,18 +74,19 @@ namespace DBConnection
                 }
             }
             return collection;
-        }        
+        }
 
         /// <summary>
         /// Connects and executes sql procedure without returning a value.
         /// </summary>
         /// <param name="command"> SqlCommand used for query. CommandText and Parameters must be set properly. </param>
+        /// <param name="sqlQueryTimeout"> Timeout used for query. Default value uses value set in constructor. </param>
         /// <param name="disposeCommand"> If true command will be disposed after execution. Default: true. </param>
-        public void SQLRunNonQueryProcedure(SqlCommand command, bool disposeCommand = true)
+        public void SQLRunNonQueryProcedure(SqlCommand command, int sqlQueryTimeout = 0, bool disposeCommand = true)
         {
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
-                PrepareSQLCommand(command, connection);
+                PrepareSQLCommand(command, connection, sqlQueryTimeout);
                 try
                 {
                     command.Connection.Open();
@@ -108,14 +110,18 @@ namespace DBConnection
         /// </summary>
         /// <param name="command"> SqlCommand which values are to be set. </param>
         /// <param name="connection"> SqlConnection to Be set in command. </param>
-        private void PrepareSQLCommand(SqlCommand command, SqlConnection connection)
+        /// <param name="sqlQueryTimeout"> Timeout used for query. Default value uses value set in constructor. </param>
+        private void PrepareSQLCommand(SqlCommand command, SqlConnection connection, int sqlQueryTimeout = 0)
         {
             if (command.CommandText.Trim().Contains(" "))
                 command.CommandType = CommandType.Text;
             else
                 command.CommandType = CommandType.StoredProcedure;
             command.Connection = connection;
-            command.CommandTimeout = SqlQueryTimeout;
+            if(sqlQueryTimeout <=0)
+                command.CommandTimeout = SqlQueryTimeout;
+            else
+                command.CommandTimeout = sqlQueryTimeout;
 
             foreach (SqlParameter sqlparameter in command.Parameters)
             {

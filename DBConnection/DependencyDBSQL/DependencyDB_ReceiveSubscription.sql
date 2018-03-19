@@ -23,7 +23,7 @@ BEGIN
 		DECLARE @V_MessageTypeId int = 2 -- end conversation msg
 		DECLARE @V_ConnectionState varchar(2)
 		DECLARE @V_IsFound bit
-		WHILE @messageTypeId = 2
+		WHILE @V_MessageTypeId = 2
 			BEGIN
 				SET @V_ConvHandle = null ;
 				WAITFOR (

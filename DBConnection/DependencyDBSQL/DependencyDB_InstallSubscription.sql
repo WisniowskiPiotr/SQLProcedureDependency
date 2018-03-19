@@ -155,8 +155,6 @@ BEGIN
 	DECLARE @V_ReferencedNonQuotedTable NVARCHAR(256) ;
 	DECLARE @V_ReferencedSchema SYSNAME ;
 	DECLARE @V_ReferencedTable SYSNAME ;
-	DECLARE @V_ReferencedTableType SYSNAME ;
-	DECLARE @V_ReferencedTableTypeDefinition NVARCHAR(max) ;
 	DECLARE CU_ReferencedTablesCursor CURSOR FOR
 		SELECT [SchemaName], 
 			[TableName]
@@ -167,33 +165,6 @@ BEGIN
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 			
-			-- need to create type to pass data to dynamic sql
-			SET @V_ReferencedTableType = 'TYPE_' + @V_ReferencedSchema + '_' + @V_ReferencedTable;
-			IF NOT EXISTS (
-				SELECT SysTypes.name 
-				FROM sys.types AS SysTypes
-				INNER JOIN sys.schemas AS SysSchemas
-					ON SysSchemas.schema_id = SysTypes.schema_id
-					AND SysSchemas.name = @V_SchemaName
-				WHERE 
-					SysTypes.is_table_type = 1  
-					AND SysTypes.name = @V_ReferencedTableType
-			)
-			BEGIN
-				SET @V_ReferencedTableTypeDefinition = (
-					SELECT ', ' + QUOTENAME( COLUMN_NAME ) + ' ' + QUOTENAME( DATA_TYPE ) + ' ' + ISNULL( '(' + CAST( CHARACTER_MAXIMUM_LENGTH AS SYSNAME) + ') NULL' , ' NULL' ) 
-					FROM INFORMATION_SCHEMA.COLUMNS
-					WHERE TABLE_NAME = @V_ReferencedTable
-						AND TABLE_SCHEMA = @V_ReferencedSchema
-					FOR XML PATH('')) ;
-				SET @V_ReferencedTableTypeDefinition = SUBSTRING( @V_ReferencedTableTypeDefinition , 2 , LEN(@V_ReferencedTableTypeDefinition))
-				
-				SET @V_Cmd = '
-					CREATE TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' AS TABLE (
-					' + @V_ReferencedTableTypeDefinition + '
-					); ' ;
-				EXEC sp_executesql @V_Cmd ;
-			END
 
 			SET @V_TriggerName = 'T_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
 			SET @V_TriggerNames = @V_TriggerNames + QUOTENAME( @V_TriggerName ) + ';'
@@ -228,16 +199,20 @@ BEGIN
 							FROM INSERTED
 					)
 						BEGIN
+							INSERT INTO #TBL_Tmp_INSERTED
+							SELECT * 
+							FROM INSERTED
+
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_INSERTED') 
-										, @V_ReferencedNonQuotedTable , '@TBL_INSERTED') 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_Tmp_INSERTED') 
+										, @V_ReferencedNonQuotedTable , '#TBL_Tmp_INSERTED') 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
-							EXEC sp_executesql @V_Cmd, N''@TBL_INSERTED '  + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY'', @TBL_INSERTED = INSERTED ;
+							EXEC sp_executesql @V_Cmd ;
 
 							SET @V_MessageInserted = 
 								(SELECT *
@@ -253,16 +228,21 @@ BEGIN
 							FROM DELETED
 					)
 						BEGIN
+
+							INSERT INTO #TBL_Tmp_DELETED
+							SELECT * 
+							FROM DELETED
+
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_DELETED') 
-										, @V_ReferencedNonQuotedTable , '@TBL_DELETED') 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_Tmp_DELETED') 
+										, @V_ReferencedNonQuotedTable , '#TBL_Tmp_DELETED') 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
-							EXEC sp_executesql @V_Cmd, N''@TBL_DELETED '  + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY'', @TBL_DELETED = DELETED ;
+							EXEC sp_executesql @V_Cmd ;
 
 							SET @V_MessageDeleted = 
 								(SELECT *

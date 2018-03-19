@@ -3,6 +3,12 @@ DECLARE @V_Cmd NVARCHAR(max);
 SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
 
+DECLARE @V_LoginName SYSNAME = 'L_' + @V_MainName;
+DECLARE @V_SchemaName SYSNAME = 'S_' + @V_MainName;
+DECLARE @V_UserName SYSNAME = 'U_' + @V_MainName;
+DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
+DECLARE @V_ServiceName SYSNAME = 'Service' + @V_MainName;
+
 -- Uninstall all triggers
 DECLARE @V_TriggerName SYSNAME ;
 DECLARE CU_TriggersCursor CURSOR FOR
@@ -26,39 +32,40 @@ CLOSE CU_TriggersCursor ;
 DEALLOCATE CU_TriggersCursor ;
 
 -- Uninstall all procedures
+
 SET @V_Cmd = '
 	IF EXISTS (
 		SELECT SysProcedures.name
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
-		WHERE SysProcedures.name = ''InstallSubscription''
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_SchemaName) + '''
+		WHERE SysProcedures.name = ''P_InstallSubscription''
 	)
 		BEGIN
-			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[InstallSubscription] ;
+			DROP PROCEDURE ' + QUOTENAME(@V_SchemaName) + '.[P_InstallSubscription] ;
 		END
 	IF EXISTS (
 		SELECT SysProcedures.name
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
-		WHERE SysProcedures.name = ''ReceiveSubscription''
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_SchemaName) + '''
+		WHERE SysProcedures.name = ''P_ReceiveSubscription''
 	)
 		BEGIN
-			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[ReceiveSubscription] ;
+			DROP PROCEDURE ' + QUOTENAME(@V_SchemaName) + '.[P_ReceiveSubscription] ;
 		END
 	IF EXISTS (
 		SELECT SysProcedures.name
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
-		WHERE SysProcedures.name = ''UninstallSubscription''
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_SchemaName) + '''
+		WHERE SysProcedures.name = ''P_UninstallSubscription''
 	)
 		BEGIN
-			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] ;
+			DROP PROCEDURE ' + QUOTENAME(@V_SchemaName) + '.[P_UninstallSubscription] ;
 		END
 '
 EXEC ( @V_Cmd );
@@ -69,18 +76,16 @@ IF EXISTS(
 		FROM sys.tables AS SysTables
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysTables.schema_id
-		WHERE SysTables.name = 'SubscribersTable'
-			AND SysSchemas.name = @V_MainName)
+		WHERE SysTables.name = 'TBL_SubscribersTable'
+			AND SysSchemas.name = @V_SchemaName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP TABLE ' + quotename(@V_MainName) + '.[SubscribersTable] ;
+			DROP TABLE ' + quotename(@V_SchemaName) + '.[TBL_SubscribersTable] ;
 		'
 		EXEC ( @V_Cmd );
 	END
 
 -- Remove Service
-DECLARE @V_ServiceName SYSNAME
-SET @V_ServiceName = 'Service' + @V_MainName
 IF EXISTS(
 	SELECT name
 		FROM sys.services 
@@ -93,20 +98,19 @@ IF EXISTS(
 	END
 
 -- Remove Queue
-DECLARE @V_QueueName SYSNAME
-SET @V_QueueName = 'Queue' + @V_MainName
 IF EXISTS (
 	SELECT name
 		FROM sys.service_queues 
 		WHERE name = @V_QueueName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP QUEUE ' + quotename(@V_MainName) + '.' + quotename(@V_QueueName) + ';
+			DROP QUEUE ' + quotename(@V_SchemaName) + '.' + quotename(@V_QueueName) + ';
 		'
 		EXEC ( @V_Cmd );
 	END
 
 -- Drop Type
+BEGIN TRY
 IF EXISTS (
 	SELECT name 
 	FROM sys.types 
@@ -116,6 +120,9 @@ IF EXISTS (
 	BEGIN
 		DROP TYPE [dbo].[TYPE_ParametersType];
 	END
+END TRY
+BEGIN CATCH
+END CATCH
 
 -- Drop Route
 IF EXISTS (
@@ -130,10 +137,10 @@ IF EXISTS (
 IF EXISTS (
 	SELECT name  
 	FROM sys.schemas
-	WHERE name = @V_MainName)
+	WHERE name = @V_SchemaName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP SCHEMA ' + quotename(@V_MainName)+ ';'
+			DROP SCHEMA ' + quotename(@V_SchemaName)+ ';'
 		EXEC( @V_Cmd );
 	END
 
@@ -142,11 +149,11 @@ IF EXISTS (
 	SELECT name
 	FROM sys.database_principals
 	WHERE 
-		name = @V_MainName AND
+		name = @V_UserName AND
 		type = 'S')
 	BEGIN
 		SET @V_Cmd = '
-			DROP USER ' + quotename(@V_MainName) + ';'
+			DROP USER ' + quotename(@V_UserName) + ';'
 		EXEC( @V_Cmd);
 	END
 
@@ -154,9 +161,9 @@ IF EXISTS (
 IF EXISTS (
 	SELECT name 
 	FROM master.sys.server_principals
-	WHERE name = @V_MainName)
+	WHERE name = @V_LoginName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP LOGIN ' + quotename(@V_MainName) + ';'
+			DROP LOGIN ' + quotename(@V_LoginName) + ';'
 		EXEC( @V_Cmd );
 	END

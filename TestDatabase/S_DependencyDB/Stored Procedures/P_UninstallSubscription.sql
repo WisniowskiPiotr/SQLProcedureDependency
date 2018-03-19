@@ -1,5 +1,5 @@
-CREATE 
-PROCEDURE [{2}].[P_UninstallSubscription]
+﻿CREATE -- CREATE 
+PROCEDURE [S_DependencyDB].[P_UninstallSubscription]
 	@V_SubscriberString NVARCHAR(200) = null,
 	@V_SubscriptionHash INT = null,
 	@V_ProcedureSchemaName SYSNAME = null,
@@ -10,14 +10,14 @@ AS
 BEGIN
 
 	SET NOCOUNT ON; 
-	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_MainName SYSNAME = 'DependencyDB' ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
 	DECLARE @V_LoginName SYSNAME = 'L_' + @V_MainName;
-	DECLARE @V_SchemaName SYSNAME = '{2}';
+	DECLARE @V_SchemaName SYSNAME = 'S_DependencyDB';
 	DECLARE @V_UserName SYSNAME = 'U_' + @V_MainName;
 	DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
-	DECLARE @V_ServiceName SYSNAME = '{1}';
+	DECLARE @V_ServiceName SYSNAME = 'ServiceDependencyDB';
 
 	DECLARE @V_ProcedureParametersXlm NVARCHAR(max) ;
 	SET @V_ProcedureParametersXlm = '<schema name="' + @V_ProcedureSchemaName + '">'+ '<procedure name="' + @V_ProcedureName + '">' + ISNULL(
@@ -49,7 +49,7 @@ BEGIN
 		[C_ValidTill] DATETIME NOT NULL,
 		[C_DeleteTrigger] BIT NOT NULL
 	) ;
-	DELETE FROM [{2}].[TBL_SubscribersTable]
+	DELETE FROM [S_DependencyDB].[TBL_SubscribersTable]
 	OUTPUT 
 		DELETED.[C_SubscribersTableId] ,
 		DELETED.[C_SubscriberString] ,
@@ -73,7 +73,7 @@ BEGIN
 	FROM @TBL_SubscribersToBeRemoved AS TBL_SubscribersToBeRemoved
 	WHERE NOT EXISTS (
 		SELECT C_SubscribersTableId
-		FROM [{2}].[TBL_SubscribersTable]
+		FROM [S_DependencyDB].[TBL_SubscribersTable]
 		WHERE TBL_SubscribersTable.C_SubscriptionHash = TBL_SubscribersToBeRemoved.C_SubscriptionHash
 		AND  TBL_SubscribersTable.C_ProcedureSchemaName = TBL_SubscribersToBeRemoved.C_ProcedureSchemaName
 		AND  TBL_SubscribersTable.C_ProcedureName = TBL_SubscribersToBeRemoved.C_ProcedureName
@@ -109,8 +109,8 @@ BEGIN
 
 			DECLARE @V_ConvHandle UNIQUEIDENTIFIER
 			BEGIN DIALOG @V_ConvHandle 
-				FROM SERVICE [{1}]
-				TO SERVICE '[{1}]'
+				FROM SERVICE [ServiceDependencyDB]
+				TO SERVICE '[ServiceDependencyDB]'
 				ON CONTRACT [DEFAULT] 
 				WITH ENCRYPTION = OFF, 
 				LIFETIME = @V_NotificationValidFor ; 

@@ -3,6 +3,12 @@ DECLARE @V_Cmd NVARCHAR(max);
 SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
 
+DECLARE @V_LoginName NVARCHAR(max) = 'L_' + @V_MainName;
+DECLARE @V_SchemaName NVARCHAR(max) = 'S_' + @V_MainName;
+DECLARE @V_UserName NVARCHAR(max) = 'U_' + @V_MainName;
+DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
+DECLARE @V_ServiceName SYSNAME = 'Service' + @V_MainName;
+
 -- Uninstall all triggers
 IF EXISTS (
 	SELECT SysTypes.name 
@@ -19,7 +25,7 @@ IF EXISTS (
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_MainName)
+			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_SchemaName)
 		WHERE SysProcedures.name = 'UninstallSubscription'
 	)
 	BEGIN
@@ -36,7 +42,7 @@ IF EXISTS (
 				''INT'',
 				''1''
 			)
-			EXEC ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] 
+			EXEC ' + QUOTENAME(@V_SchemaName) + '.[UninstallSubscription] 
 				@V_SubscriberString = null, 
 				@V_SubscriptionHash = null, 
 				@V_ProcedureSchemaName = null, 
@@ -55,33 +61,33 @@ SET @V_Cmd = '
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
-		WHERE SysProcedures.name = ''InstallSubscription''
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_SchemaName) + '''
+		WHERE SysProcedures.name = ''P_InstallSubscription''
 	)
 		BEGIN
-			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[InstallSubscription] ;
+			DROP PROCEDURE ' + QUOTENAME(@V_SchemaName) + '.[P_InstallSubscription] ;
 		END
 	IF EXISTS (
 		SELECT SysProcedures.name
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
-		WHERE SysProcedures.name = ''ReceiveSubscription''
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_SchemaName) + '''
+		WHERE SysProcedures.name = ''P_ReceiveSubscription''
 	)
 		BEGIN
-			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[ReceiveSubscription] ;
+			DROP PROCEDURE ' + QUOTENAME(@V_SchemaName) + '.[P_ReceiveSubscription] ;
 		END
 	IF EXISTS (
 		SELECT SysProcedures.name
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_MainName) + '''
-		WHERE SysProcedures.name = ''UninstallSubscription''
+			AND QUOTENAME( SysSchemas.name ) = ''' + QUOTENAME(@V_SchemaName) + '''
+		WHERE SysProcedures.name = ''P_UninstallSubscription''
 	)
 		BEGIN
-			DROP PROCEDURE ' + QUOTENAME(@V_MainName) + '.[UninstallSubscription] ;
+			DROP PROCEDURE ' + QUOTENAME(@V_SchemaName) + '.[P_UninstallSubscription] ;
 		END
 '
 EXEC ( @V_Cmd );
@@ -92,18 +98,16 @@ IF EXISTS(
 		FROM sys.tables AS SysTables
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysTables.schema_id
-		WHERE SysTables.name = 'SubscribersTable'
-			AND SysSchemas.name = @V_MainName)
+		WHERE SysTables.name = 'TBL_SubscribersTable'
+			AND SysSchemas.name = @V_SchemaName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP TABLE ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] ;
+			DROP TABLE ' + QUOTENAME(@V_SchemaName) + '.[TBL_SubscribersTable] ;
 		'
 		EXEC ( @V_Cmd );
 	END
 
 -- Remove Service
-DECLARE @V_ServiceName SYSNAME
-SET @V_ServiceName = 'Service' + @V_MainName
 IF EXISTS(
 	SELECT name
 		FROM sys.services 
@@ -116,15 +120,13 @@ IF EXISTS(
 	END
 
 -- Remove Queue
-DECLARE @V_QueueName SYSNAME
-SET @V_QueueName = 'Queue' + @V_MainName
 IF EXISTS (
 	SELECT name
 		FROM sys.service_queues 
 		WHERE name = @V_QueueName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP QUEUE ' + QUOTENAME(@V_MainName) + '.' + QUOTENAME(@V_QueueName) + ';
+			DROP QUEUE ' + QUOTENAME(@V_SchemaName) + '.' + QUOTENAME(@V_QueueName) + ';
 		'
 		EXEC ( @V_Cmd );
 	END
@@ -135,8 +137,8 @@ BEGIN TRY
 		SELECT name 
 		FROM sys.types 
 		WHERE 
-			is_table_type = 1 AND 
-			name = 'TYPE_ParametersType')
+			is_table_type = 1 
+			AND name = 'TYPE_ParametersType')
 		BEGIN
 			DROP TYPE [dbo].[TYPE_ParametersType];
 		END
@@ -148,10 +150,10 @@ END CATCH
 IF EXISTS (
 	SELECT name  
 	FROM sys.schemas
-	WHERE name = @V_MainName)
+	WHERE name = @V_SchemaName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP SCHEMA ' + QUOTENAME(@V_MainName) + ';
+			DROP SCHEMA ' + QUOTENAME(@V_SchemaName) + ';
 		'
 		EXEC( @V_Cmd );
 	END
@@ -161,11 +163,11 @@ IF EXISTS (
 	SELECT name
 	FROM sys.database_principals
 	WHERE 
-		name = @V_MainName AND
+		name = @V_UserName AND
 		type = 'S')
 	BEGIN
 		SET @V_Cmd = '
-			DROP USER ' + QUOTENAME(@V_MainName) + ';
+			DROP USER ' + QUOTENAME(@V_UserName) + ';
 		'
 		EXEC( @V_Cmd );
 	END
@@ -174,10 +176,10 @@ IF EXISTS (
 IF EXISTS (
 	SELECT name 
 	FROM master.sys.server_principals
-	WHERE name = @V_MainName)
+	WHERE name = @V_LoginName)
 	BEGIN
 		SET @V_Cmd = '
-			DROP LOGIN ' + QUOTENAME(@V_MainName) + ';
+			DROP LOGIN ' + QUOTENAME(@V_LoginName) + ';
 		'
 		EXEC( @V_Cmd );
 	END

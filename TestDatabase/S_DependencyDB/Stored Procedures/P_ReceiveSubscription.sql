@@ -1,5 +1,5 @@
-CREATE 
-PROCEDURE [{2}].[P_ReceiveSubscription]
+﻿CREATE -- CREATE 
+PROCEDURE [S_DependencyDB].[P_ReceiveSubscription]
 	@V_ReceiveTimeout int = 150000 -- After 5 min retry getting message from queue.
 AS 
 --DECLARE
@@ -7,14 +7,14 @@ AS
 BEGIN
 
 	SET NOCOUNT ON; 
-	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_MainName SYSNAME = 'DependencyDB' ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
 	DECLARE @V_LoginName SYSNAME = 'L_' + @V_MainName;
-	DECLARE @V_SchemaName SYSNAME = '{2}';
+	DECLARE @V_SchemaName SYSNAME = 'S_DependencyDB';
 	DECLARE @V_UserName SYSNAME = 'U_' + @V_MainName;
 	DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
-	DECLARE @V_ServiceName SYSNAME = '{1}';
+	DECLARE @V_ServiceName SYSNAME = 'ServiceDependencyDB';
 	
 	-- Start Listening
 	SET @V_Cmd = '

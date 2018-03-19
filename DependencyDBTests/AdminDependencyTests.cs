@@ -27,7 +27,7 @@ namespace DBConnectionTests
             AdminDependencyDBInstance.AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             // Try install
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
 
             // Test install
             slqCommandText = string.Format(
@@ -38,11 +38,11 @@ namespace DBConnectionTests
             List<Tuple<int>> testResult = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
             if (testResult.Count != 1 && testResult[0].Item1 != 1)
             {
-                Assert.Fail();
+                Assert.Fail("Not all objects were instaled properly when instaling from clean DB.");
             }
 
             // try instal with existing objects
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(
@@ -53,7 +53,7 @@ namespace DBConnectionTests
             List<Tuple<int>> testResult2 = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
             if (testResult2.Count != 1 && testResult2[0].Item1 != 1)
             {
-                Assert.Fail();
+                Assert.Fail("Not all objects were instaled properly when instaling from already populated DB.");
             }
         }
 
@@ -81,13 +81,15 @@ namespace DBConnectionTests
                 List<Tuple<int>> testResult = serviceAccessDB.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
                 if (testResult.Count != 1 && testResult[0].Item1 != 0)
                 {
-                    Assert.Fail();
+                    Assert.Fail("Can select from granted table after revoke provilages.");
                 }
             }
             catch (Exception ex)
             {
-                if(!ex.InnerException.Message.Contains("SELECT permission was denied on the object 'testTable'"))
-                    Assert.Fail();
+                if (!ex.InnerException.Message.Contains("SELECT permission was denied on the object 'testTable'"))
+                {
+                    throw ex;
+                }
             }
 
             // Try
@@ -102,7 +104,7 @@ namespace DBConnectionTests
             List<Tuple<int>> testResult2 = serviceAccessDB.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
             if (testResult2.Count != 1 && testResult2[0].Item1 != 1)
             {
-                Assert.Fail();
+                Assert.Fail("Cannot select from granted table after grant provilages.");
             }
 
         }
@@ -125,11 +127,11 @@ namespace DBConnectionTests
             List<Tuple<int>> testResult = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
             if (testResult.Count != 1 && testResult[0].Item1 != 1)
             {
-                Assert.Fail();
+                Assert.Fail("Some objects still exists after uninstall.");
             }
 
             // try instal again
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(
@@ -140,7 +142,7 @@ namespace DBConnectionTests
             List<Tuple<int>> testResult2 = AdminDependencyDBInstance.AccessDBInstance.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
             if (testResult2.Count != 1 && testResult2[0].Item1 != 1)
             {
-                Assert.Fail();
+                Assert.Fail("Some objects were not re-instaled properly after uninstall.");
             }
         }
     }

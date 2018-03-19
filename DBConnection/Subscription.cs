@@ -9,29 +9,20 @@ namespace DBConnection
 {
     public class Subscription : IEquatable<Subscription>
     {
-        public enum SubscriptionType
-        {
-            Auto,
-            //ForXmlType,
-            //InsertExecType,
-            //OpenRowSetType
-        }
 
         public string SubscriberString;
         public string ProcedureSchemaName;
         public string ProcedureName;
         public SqlParameterCollection ProcedureParameters;
         public int ValidFor;
-        public SubscriptionType Type;
 
-        public Subscription( string subscriberString="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters=null, int validFor=0, SubscriptionType type = SubscriptionType.Auto)
+        public Subscription( string subscriberString="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters=null, int validFor= 432000)
         {
             SubscriberString = subscriberString;
             ProcedureSchemaName = procedureSchemaName;
             ProcedureName = procedureName;
             ProcedureParameters = procedureParameters;
             ValidFor = validFor;
-            Type = type;
         }
 
         public string GetHashText(string appName = "")

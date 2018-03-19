@@ -1,8 +1,9 @@
 DECLARE @V_MainName SYSNAME = '{0}';
 DECLARE @V_Password NVARCHAR(max) = '{1}';
-DECLARE @V_InstallSubscriptionProcedure NVARCHAR(max) = '{2}';
-DECLARE @V_ReceiveSubscriptionProcedure NVARCHAR(max) = '{3}';
-DECLARE @V_UninstallSubscriptionProcedure NVARCHAR(max) = '{4}';
+DECLARE @V_DefaultDBName NVARCHAR(max) = '{2}';
+DECLARE @V_InstallSubscriptionProcedure NVARCHAR(max) = '{3}';
+DECLARE @V_ReceiveSubscriptionProcedure NVARCHAR(max) = '{4}';
+DECLARE @V_UninstallSubscriptionProcedure NVARCHAR(max) = '{5}';
 DECLARE @V_Cmd NVARCHAR(max);
 SET ANSI_NULLS ON
 SET QUOTED_IDENTIFIER ON
@@ -24,51 +25,55 @@ IF( @V_IsBrokerEnabled = 0)
 	END
 
 -- Create or ReCreate DependencyDB login
+DECLARE @V_LoginName SYSNAME = 'L_' + @V_MainName;
 BEGIN TRANSACTION
 	IF EXISTS (
 		SELECT name 
 		FROM master.sys.server_principals
-		WHERE name = @V_MainName)
+		WHERE name = @V_LoginName)
 		BEGIN
 			SET @V_Cmd = '
-				DROP LOGIN ' + QUOTENAME(@V_MainName) + ';
+				DROP LOGIN ' + QUOTENAME(@V_LoginName) + ';
 			'
 			EXEC ( @V_Cmd );
 		END
 	SET @V_Cmd = '
-		CREATE LOGIN ' + QUOTENAME(@V_MainName) + '
+		CREATE LOGIN ' + QUOTENAME(@V_LoginName) + '
 			WITH PASSWORD = ''' + @V_Password + ''', 
 			CHECK_EXPIRATION = OFF, 
-			CHECK_POLICY = OFF;
+			CHECK_POLICY = OFF,
+			DEFAULT_DATABASE = ' + QUOTENAME(@V_DefaultDBName) + ';
 		'
 	EXEC ( @V_Cmd )
 COMMIT TRANSACTION
 
 -- Create shema
+DECLARE @V_SchemaName SYSNAME = 'S_' + @V_MainName;
 IF NOT EXISTS (
 	SELECT name  
 	FROM sys.schemas
-	WHERE name = @V_MainName)
+	WHERE name = @V_SchemaName)
 	BEGIN
 		-- The schema must be run in its own batch!
 		SET @V_Cmd = '
-			CREATE SCHEMA ' + QUOTENAME(@V_MainName) + ';
+			CREATE SCHEMA ' + QUOTENAME(@V_SchemaName) + ';
 		'
 		EXEC( @V_Cmd );
 	END
 
 -- Create user
+DECLARE @V_UserName SYSNAME = 'U_' + @V_MainName;
 IF NOT EXISTS (
 	SELECT name
 	FROM sys.database_principals
 	WHERE 
-		name = @V_MainName AND
-		type = 'S')
+		name = @V_UserName 
+		AND type = 'S')
 	BEGIN
 		SET @V_Cmd = '
-			CREATE USER ' + QUOTENAME(@V_MainName) + '
-				FOR LOGIN ' + QUOTENAME(@V_MainName) + '
-				WITH DEFAULT_SCHEMA = ' + QUOTENAME(@V_MainName) +';
+			CREATE USER ' + QUOTENAME(@V_UserName) + '
+				FOR LOGIN ' + QUOTENAME(@V_LoginName) + '
+				WITH DEFAULT_SCHEMA = ' + QUOTENAME(@V_SchemaName) +';
 		'
 		EXEC( @V_Cmd);
 	END
@@ -102,34 +107,32 @@ IF NOT EXISTS (
 
 -- Grant Provilages
 SET @V_Cmd = '
-	ALTER AUTHORIZATION ON SCHEMA::' + QUOTENAME(@V_MainName)  + ' TO  ' + QUOTENAME(@V_MainName) + ';
-	-- GRANT CREATE PROCEDURE TO ' + QUOTENAME(@V_MainName)  + '; 
-	GRANT SUBSCRIBE QUERY NOTIFICATIONS TO ' + QUOTENAME(@V_MainName)  + ';
-	GRANT CONTROL ON CONTRACT::[DEFAULT] TO ' + QUOTENAME(@V_MainName)  + ';
-	GRANT EXECUTE ON TYPE::[dbo].[TYPE_ParametersType] TO ' + QUOTENAME(@V_MainName)  + ';
+	ALTER AUTHORIZATION ON SCHEMA::' + QUOTENAME(@V_SchemaName)  + ' TO  ' + QUOTENAME(@V_UserName) + ';
+	-- GRANT CREATE PROCEDURE TO ' + QUOTENAME(@V_UserName)  + '; 
+	GRANT SUBSCRIBE QUERY NOTIFICATIONS TO ' + QUOTENAME(@V_UserName)  + ';
+	GRANT CONTROL ON CONTRACT::[DEFAULT] TO ' + QUOTENAME(@V_UserName)  + ';
+	GRANT EXECUTE ON TYPE::[dbo].[TYPE_ParametersType] TO ' + QUOTENAME(@V_UserName)  + ';
 '
 EXEC( @V_Cmd );
 
 -- Create Queue
-DECLARE @V_QueueName SYSNAME
-SET @V_QueueName = 'Queue' + @V_MainName
+DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
 IF NOT EXISTS (
 	SELECT SysQueyes.name
 		FROM sys.service_queues AS SysQueyes
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysQueyes.schema_id
-			AND SysSchemas.name = @V_MainName
+			AND SysSchemas.name = @V_SchemaName
 		WHERE SysQueyes.name = @V_QueueName)
 	BEGIN
 		SET @V_Cmd = '
-			CREATE QUEUE ' + QUOTENAME(@V_MainName) + '.' + QUOTENAME(@V_QueueName) + ';
+			CREATE QUEUE ' + QUOTENAME(@V_SchemaName) + '.' + QUOTENAME(@V_QueueName) + ';
 		'
 		EXEC ( @V_Cmd );
 	END
 
 -- Create Service
-DECLARE @V_ServiceName SYSNAME
-SET @V_ServiceName = 'Service' + @V_MainName
+DECLARE @V_ServiceName SYSNAME = 'Service' + @V_MainName;
 IF NOT EXISTS(
 	SELECT name
 		FROM sys.services 
@@ -137,7 +140,7 @@ IF NOT EXISTS(
 	BEGIN
 		SET @V_Cmd = '
 		CREATE SERVICE ' + QUOTENAME(@V_ServiceName) + ' 
-		ON QUEUE ' + QUOTENAME(@V_MainName) + '.' + QUOTENAME(@V_QueueName) + '
+		ON QUEUE ' + QUOTENAME(@V_SchemaName) + '.' + QUOTENAME(@V_QueueName) + '
 		([DEFAULT]);
 		'
 		EXEC ( @V_Cmd );
@@ -149,12 +152,12 @@ IF NOT EXISTS(
 		FROM sys.tables AS SysTables
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysTables.schema_id
-			AND SysSchemas.name = @V_MainName
-		WHERE SysTables.name = 'SubscribersTable'
+			AND SysSchemas.name = @V_SchemaName
+		WHERE SysTables.name = 'TBL_SubscribersTable'
 	)
 	BEGIN
 		SET @V_Cmd = '
-			CREATE TABLE ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] (
+			CREATE TABLE ' + QUOTENAME(@V_SchemaName) + '.[TBL_SubscribersTable] (
 				[C_SubscribersTableId] INT IDENTITY(1,1) NOT NULL,
 				[C_SubscriberString] NVARCHAR(200) NOT NULL,
 				[C_SubscriptionHash] INT NOT NULL,
@@ -167,10 +170,10 @@ IF NOT EXISTS(
 					[C_SubscribersTableId] ASC
 				)
 			) ;
-			CREATE NONCLUSTERED INDEX [IND_' + @V_MainName + '_TBL_SubscribersTable_C_SubscriptionHash] ON ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] (
+			CREATE NONCLUSTERED INDEX [IND_' + @V_MainName + '_TBL_SubscribersTable_C_SubscriptionHash] ON ' + QUOTENAME(@V_SchemaName) + '.[TBL_SubscribersTable] (
 				[C_SubscriptionHash] ASC
 			) ;
-			CREATE NONCLUSTERED INDEX [IND_' + @V_MainName + '_TBL_SubscribersTable_C_ValidTill] ON ' + QUOTENAME(@V_MainName) + '.[SubscribersTable] (
+			CREATE NONCLUSTERED INDEX [IND_' + @V_MainName + '_TBL_SubscribersTable_C_ValidTill] ON ' + QUOTENAME(@V_SchemaName) + '.[TBL_SubscribersTable] (
 				[C_ValidTill] ASC
 			) ;
 		'
@@ -183,15 +186,15 @@ IF EXISTS (
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_MainName) 
-		WHERE SysProcedures.name = 'InstallSubscription'
+			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_SchemaName) 
+		WHERE SysProcedures.name = 'P_InstallSubscription'
 	)
 	BEGIN
-		SET @V_Cmd = 'ALTER ' + @V_InstallSubscriptionProcedure ;
+		SET @V_Cmd = 'ALTER -- ' + @V_InstallSubscriptionProcedure ;
 	END
 ELSE
 	BEGIN
-		SET @V_Cmd = 'CREATE ' + @V_InstallSubscriptionProcedure ;
+		SET @V_Cmd = 'CREATE -- ' + @V_InstallSubscriptionProcedure ;
 	END
 EXEC ( @V_Cmd );
 
@@ -200,15 +203,15 @@ IF EXISTS (
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_MainName) 
-		WHERE SysProcedures.name = 'ReceiveSubscription'
+			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_SchemaName) 
+		WHERE SysProcedures.name = 'P_ReceiveSubscription'
 	)
 	BEGIN
-		SET @V_Cmd = 'ALTER ' + @V_ReceiveSubscriptionProcedure ;
+		SET @V_Cmd = 'ALTER -- ' + @V_ReceiveSubscriptionProcedure ;
 	END
 ELSE
 	BEGIN
-		SET @V_Cmd = 'CREATE ' + @V_ReceiveSubscriptionProcedure ;
+		SET @V_Cmd = 'CREATE -- ' + @V_ReceiveSubscriptionProcedure ;
 	END
 EXEC ( @V_Cmd );
 
@@ -217,14 +220,14 @@ IF EXISTS (
 		FROM sys.procedures AS SysProcedures
 		INNER JOIN sys.schemas AS SysSchemas
 			ON SysSchemas.schema_id = SysProcedures.schema_id
-			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_MainName) 
-		WHERE SysProcedures.name = 'UninstallSubscription'
+			AND QUOTENAME( SysSchemas.name ) = QUOTENAME(@V_SchemaName) 
+		WHERE SysProcedures.name = 'P_UninstallSubscription'
 	)
 	BEGIN
-		SET @V_Cmd = 'ALTER ' + @V_UninstallSubscriptionProcedure ;
+		SET @V_Cmd = 'ALTER -- ' + @V_UninstallSubscriptionProcedure ;
 	END
 ELSE
 	BEGIN
-		SET @V_Cmd = 'CREATE ' + @V_UninstallSubscriptionProcedure ;
+		SET @V_Cmd = 'CREATE -- ' + @V_UninstallSubscriptionProcedure ;
 	END
 EXEC ( @V_Cmd );

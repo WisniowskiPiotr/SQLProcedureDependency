@@ -1,5 +1,5 @@
-CREATE 
-PROCEDURE [{2}].[P_InstallSubscription]
+﻿CREATE -- CREATE 
+PROCEDURE [S_DependencyDB].[P_InstallSubscription]
 	@V_SubscriberString NVARCHAR(200),
 	@V_SubscriptionHash INT,
 	@V_ProcedureSchemaName SYSNAME,
@@ -20,14 +20,14 @@ AS
 BEGIN
 	
 	SET NOCOUNT ON; 
-	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_MainName SYSNAME = 'DependencyDB' ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
 	DECLARE @V_LoginName SYSNAME = 'L_' + @V_MainName;
-	DECLARE @V_SchemaName SYSNAME = '{2}';
+	DECLARE @V_SchemaName SYSNAME = 'S_DependencyDB';
 	DECLARE @V_UserName SYSNAME = 'U_' + @V_MainName;
 	DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
-	DECLARE @V_ServiceName SYSNAME = '{1}';
+	DECLARE @V_ServiceName SYSNAME = 'ServiceDependencyDB';
 
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
 	SET @V_ProcedureParametersList = ISNULL(

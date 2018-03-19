@@ -30,32 +30,37 @@ namespace DBConnection
         /// This needs to be run olny once with admin provilages. 
         /// Using this method in production is highly discouraged.
         /// </summary>
+        /// <param name="databaseName"> Name of database for which login will be created. </param>
         /// <param name="password"> Password used for newly created DependencyDB login. </param>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
         /// <param name="observedShema"> Shema name which can be observed by DependencyDB. </param>
-        public void AdminInstall( string password, string mainServiceName = "DependencyDB", string observedShema="dbo")
+        public void AdminInstall( string databaseName, string password, string mainServiceName = "DependencyDB", string observedShema="dbo")
         {
             TestName(mainServiceName);
 
             string instalProcedureText = string.Format(
                 Resources.DependencyDB_InstallSubscription,
                 mainServiceName,
-                "Service" + mainServiceName).Replace("'","''");
+                "Service" + mainServiceName,
+                "S_"+ mainServiceName).Replace("'","''");
 
             string receiveProcedureText = string.Format(
                 Resources.DependencyDB_ReceiveSubscription,
                 mainServiceName,
-                "Service" + mainServiceName).Replace("'", "''");
+                "Service" + mainServiceName,
+                "S_" + mainServiceName).Replace("'", "''");
 
             string uninstalProcedureText = string.Format(
                 Resources.DependencyDB_UninstallSubscription,
                 mainServiceName,
-                "Service" + mainServiceName).Replace("'", "''");
+                "Service" + mainServiceName,
+                "S_" + mainServiceName).Replace("'", "''");
 
             string slqCommandText = string.Format(
                 Resources.AdminInstall,
                 mainServiceName,
                 password,
+                databaseName,
                 instalProcedureText,
                 receiveProcedureText,
                 uninstalProcedureText

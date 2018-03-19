@@ -62,35 +62,22 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;{0}&apos;
-        ///DECLARE @V_Cmd nvarchar(max)
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
         ///
-        ///-- Drop Type
-        ///IF EXISTS (
-        ///	SELECT name 
-        ///	FROM sys.types 
-        ///	WHERE 
-        ///		is_table_type = 1 AND 
-        ///		name = &apos;SpParametersType&apos;)
-        ///	BEGIN
-        ///		SET @V_Cmd = &apos;
-        ///			DROP TYPE &apos; + quotename(@V_MainName) + &apos;.[SpParametersType];&apos;
-        ///		EXEC( @V_Cmd);
-        ///	END
+        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
+        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
+        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
         ///
-        ///-- Drop Route
-        ///IF EXISTS (
-        ///	SELECT name
-        ///	FROM sys.routes
-        ///	WHERE name = &apos;AutoCreatedLocal&apos;)
-        ///	BEGIN
-        ///		DROP ROUTE [AutoCreatedLocal];
-        ///	END
-        ///
-        ///-- Drop shema
-        ///IF EXISTS (
-        ///	SELECT name  
-        ///	FROM sys.s [rest of string was truncated]&quot;;.
+        ///-- Uninstall all triggers
+        ///DECLARE @V_TriggerName SYSNAME ;
+        ///DECLARE CU_TriggersCursor CURSOR FOR
+        ///	SELECT TBL_Triggers.name
+        ///	 [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminInstall_Cleanup {
             get {
@@ -99,36 +86,27 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;{0}&apos;
-        ///DECLARE @V_Cmd nvarchar(max)
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
         ///
-        ///-- Drop Type
-        ///IF EXISTS (
-        ///		SELECT name 
-        ///		FROM sys.types 
-        ///		WHERE 
-        ///			is_table_type = 1 AND 
-        ///			name = &apos;SpParametersType&apos;)
-        ///	AND
+        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
+        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
+        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
+        ///
+        ///IF 
         ///	EXISTS (
         ///		SELECT name
         ///		FROM sys.routes
-        ///		WHERE name = &apos;AutoCreatedLocal&apos;)
+        ///		WHERE name = &apos;AutoCreatedLocal&apos;
+        ///	)
         ///	AND
         ///	EXISTS (
         ///		SELECT name
-        ///		FROM sys.database_principals
-        ///		WHERE 
-        ///			name = @V_MainName AND
-        ///			type = &apos;S&apos;)
-        ///	AND 
-        ///	EXISTS (
-        ///		SELECT name  
-        ///		FROM sys.schemas
-        ///		WHERE name = @V_MainName)
-        ///	AND
-        ///	EXISTS (
-        ///		SELECT [rest of string was truncated]&quot;;.
+        ///		FROM [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminInstall_Test {
             get {
@@ -137,21 +115,22 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;{0}&apos;
-        ///DECLARE @V_Cmd nvarchar(max)
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
         ///
         ///-- Drop Type
         ///IF EXISTS (
         ///		SELECT column1 
-        ///		FROM dbo.testTable)
+        ///		FROM dbo.TBL_TestTable)
         ///	BEGIN
         ///		SELECT 1
         ///	END
         ///ELSE
         ///	BEGIN
         ///		SELECT 0
-        ///	END
-        ///.
+        ///	END.
         /// </summary>
         public static string AdminInstallObservedShema_Test {
             get {
@@ -160,39 +139,48 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName sysname = &apos;{0}&apos;
-        ///DECLARE @V_Cmd nvarchar(max)
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
+        ///
+        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
+        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
+        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
         ///
         ///-- Drop Type
-        ///IF NOT EXISTS (
-        ///		SELECT name 
-        ///		FROM sys.types 
-        ///		WHERE 
-        ///			is_table_type = 1 AND 
-        ///			name = &apos;SpParametersType&apos;)
-        ///	AND
-        ///	NOT EXISTS (
-        ///		SELECT name
-        ///		FROM sys.routes
-        ///		WHERE name = &apos;AutoCreatedLocal&apos;)
-        ///	AND
-        ///	NOT EXISTS (
-        ///		SELECT name
-        ///		FROM sys.database_principals
-        ///		WHERE 
-        ///			name = @V_MainName AND
-        ///			type = &apos;S&apos;)
-        ///	AND 
-        ///	NOT EXISTS (
-        ///		SELECT name  
-        ///		FROM sys.schemas
-        ///		WHERE name = @V_MainName)
-        ///	AND
-        ///	NO [rest of string was truncated]&quot;;.
+        ///IF NOT EXISTS(
+        ///		SELECT SysTables.name
+        ///		FROM sys.tables AS SysTables
+        ///		INNER JOIN sys.schemas AS SysSchemas
+        /// [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminUnInstall_Test {
             get {
                 return ResourceManager.GetString("AdminUnInstall_Test", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
+        ///
+        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
+        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
+        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
+        ///DECLARE @V_TableName SYSNAME = &apos;TBL_Subscribers&apos; ;
+        ///DECLARE @V_SubscriptionHash VARCHAR(max) = &apos;{2}&apos;;
+        ///DECLARE @V_SubscriberStrin [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string SqlProcedures_InstallSubscription {
+            get {
+                return ResourceManager.GetString("SqlProcedures_InstallSubscription", resourceCulture);
             }
         }
     }

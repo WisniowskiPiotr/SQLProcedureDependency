@@ -37,7 +37,11 @@ namespace DBConnection
 
         public override int GetHashCode()
         {
-            return this.GetHashText().GetHashCode();
+            int hash = this.GetHashText().GetHashCode();
+            if (hash < 0)
+                return -hash;
+            else
+                return hash;
         }
 
         /// <summary>

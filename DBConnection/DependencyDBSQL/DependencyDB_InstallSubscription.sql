@@ -6,7 +6,7 @@ PROCEDURE [{2}].[P_InstallSubscription]
 	@V_ProcedureName SYSNAME,
 	@TBL_ProcedureParameters dbo.TYPE_ParametersType READONLY,
 	@V_NotificationValidFor INT = 432000 -- 5 days to receive notification
-AS 
+ AS 
 --DECLARE
 --	@V_SubscriberString NVARCHAR(200) = 'TestSubscriberString',
 --	@V_SubscriptionHash INT = '1234564',
@@ -20,14 +20,15 @@ AS
 BEGIN
 	
 	SET NOCOUNT ON; 
-	DECLARE @V_MainName SYSNAME = '{0}' ;
+	DECLARE @V_MainName SYSNAME = 'DependencyDB' ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
 	DECLARE @V_LoginName SYSNAME = 'L_' + @V_MainName;
-	DECLARE @V_SchemaName SYSNAME = '{2}';
+	DECLARE @V_SchemaName SYSNAME = 'S_DependencyDB';
 	DECLARE @V_UserName SYSNAME = 'U_' + @V_MainName;
 	DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
-	DECLARE @V_ServiceName SYSNAME = '{1}';
+	DECLARE @V_ServiceName SYSNAME = 'ServiceDependencyDB';
+	DECLARE @V_ExceptionMessage NVARCHAR(max);
 
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
 	SET @V_ProcedureParametersList = ISNULL(
@@ -79,8 +80,14 @@ BEGIN
 			ON procedures.object_id = sql_modules.object_id
 		INNER JOIN sys.schemas AS schemas
 			ON schemas.schema_id = procedures.schema_id
-		WHERE schemas.name = @V_ProcedureSchemaName
-			AND procedures.name = @V_ProcedureName ;
+		WHERE QUOTENAME( schemas.name ) = QUOTENAME( @V_ProcedureSchemaName )
+			AND QUOTENAME( procedures.name ) = QUOTENAME( @V_ProcedureName ) ;
+	IF @V_ProcedureText IS NULL
+		BEGIN;
+			SET @V_ExceptionMessage  = 'Procedure text was not found - ' + QUOTENAME( @V_ProcedureSchemaName ) + '.' + QUOTENAME( @V_ProcedureName );
+			THROW 99997, @V_ExceptionMessage , 1;
+		END
+	SET @V_ProcedureText = REPLACE( @V_ProcedureText , 'RETURN ', '-- RETURN ');
 
 	-- get rid of begining of procedure
 	DECLARE @TBL_StartPoz Table (
@@ -107,9 +114,15 @@ BEGIN
 	-- get result table definition
 	DECLARE @V_ResultTableDefinition NVARCHAR(max)
 	SET @V_ResultTableDefinition =
-		(SELECT ',' + QUOTENAME( TBL_ResultDefinition.name ) + ' ' + TBL_ResultDefinition.system_type_name --+   CHAR(10) 
+		(SELECT ',' + QUOTENAME( ISNULL (TBL_ResultDefinition.name, 'NoNameColumn' + CAST( TBL_ResultDefinition.column_ordinal AS SYSNAME)) ) + ' ' + TBL_ResultDefinition.system_type_name --+   CHAR(10) 
 		FROM [sys].[dm_exec_describe_first_result_set] ( @V_ProcedureText, null, 0) AS TBL_ResultDefinition
 		FOR XML PATH('')) ;
+
+	IF @V_ResultTableDefinition IS NULL OR @V_ResultTableDefinition = ''
+		BEGIN;
+			SET @V_ExceptionMessage = 'Procedure text is to complex. sys.dm_exec_describe_first_result_set cannot determine its return table schema.';
+			THROW 99996, @V_ExceptionMessage , 1;
+		END
 	SET @V_ResultTableDefinition = '
 		DECLARE @TBL_ResultTable TABLE (
 			' +
@@ -167,7 +180,7 @@ BEGIN
 					SET NOCOUNT ON; 
 
 					IF( GETDATE() > ''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''')
-						RETURN 0 ;
+						RETURN ;
 
 					DECLARE @V_Message NVARCHAR(MAX) ;
 					DECLARE @V_MessageInserted NVARCHAR(MAX) ;
@@ -278,7 +291,6 @@ BEGIN
 						END
 				END 
 			' ;
-			
 			BEGIN TRANSACTION 
 				-- lock whole table
 				SET @V_Cmd = '
@@ -286,7 +298,7 @@ BEGIN
 					SELECT TOP 1 
 							@V_Dummy = 1 
 						FROM ' + @V_ReferencedQuotedTable + '
-						WITH (UPDLOCK, TABLOCKX, HOLDLOCK) 
+						WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
 					' ;
 				EXEC sp_executesql @V_Cmd ;
 
@@ -317,6 +329,7 @@ BEGIN
 	DEALLOCATE CU_ReferencedTablesCursor ;
 
 	SET @V_Cmd = '
+
 		INSERT INTO ' + QUOTENAME( @V_SchemaName ) + '.[TBL_SubscribersTable] (
 			[C_SubscriberString],
 			[C_SubscriptionHash],
@@ -327,17 +340,17 @@ BEGIN
 			[C_ValidTill]
 		)
 		VALUES (
-			' + QUOTENAME( @V_SubscriberString ) + ',
+			''' + QUOTENAME( @V_SubscriberString ) + ''',
 			' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ',
-			' + QUOTENAME( @V_ProcedureSchemaName ) + ',
-			' + QUOTENAME( @V_ProcedureName ) + ',
-			' + @V_ProcedureParametersXlm + ',
-			' + @V_TriggerNames + ',
-			''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''',
+			''' + QUOTENAME( @V_ProcedureSchemaName ) + ''',
+			''' + QUOTENAME( @V_ProcedureName ) + ''',
+			''' + @V_ProcedureParametersXlm + ''',
+			''' + @V_TriggerNames + ''',
+			''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + '''
 		) ;
 	'
 	EXEC sp_executesql @V_Cmd ;
-	RETURN 0 ;
+	RETURN ;
 END ;
 
 

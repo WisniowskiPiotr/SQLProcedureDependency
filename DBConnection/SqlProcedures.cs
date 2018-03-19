@@ -18,20 +18,20 @@ namespace DBConnection
         {
             AppName = appName;
             AccessDBInstance = new AccessDB(connectionString, queryTimeout);
-            SetProcedureNames(appName);
+            SetProcedureNames("S_" + appName);
         }
         public SqlProcedures(string appName, AccessDB accessDB)
         {
             AppName = appName;
             AccessDBInstance = accessDB;
-            SetProcedureNames(appName);
+            SetProcedureNames("S_"+appName);
         }
 
-        private void SetProcedureNames(string appName)
+        private void SetProcedureNames(string schemaName)
         {
-            ProcedureNameInstall = "[" + appName + "].[P_InstallSubscription]";
-            ProcedureNameReceiveNotification = "[" + appName + "].[P_ReceiveSubscription]";
-            ProcedureNameUninstall = "[" + appName + "].[P_UninstallSubscription]";
+            ProcedureNameInstall = "[" + schemaName + "].[P_InstallSubscription]";
+            ProcedureNameReceiveNotification = "[" + schemaName + "].[P_ReceiveSubscription]";
+            ProcedureNameUninstall = "[" + schemaName + "].[P_UninstallSubscription]";
         }
 
         public void InstallSubscription(Subscription subscription)
@@ -54,7 +54,7 @@ namespace DBConnection
             return result;
         }
         
-        public void SqlUnInstal(Subscription subscription)
+        public void UninstallSubscription(Subscription subscription)
         {
             SqlCommand command = new SqlCommand(ProcedureNameUninstall);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriberString", SqlDbType.NVarChar, subscription.SubscriberString));
@@ -74,9 +74,9 @@ namespace DBConnection
         private static List<SqlDataRecord> SqlParameterCollectionToDataTable(SqlParameterCollection comandParameters)
         {
             List<SqlDataRecord> procedureParameters = new List<SqlDataRecord>();
-            SqlMetaData pName = new SqlMetaData("PName", SqlDbType.NVarChar);
-            SqlMetaData pType = new SqlMetaData("PType", SqlDbType.NVarChar);
-            SqlMetaData pValue = new SqlMetaData("PValue", SqlDbType.NVarChar);
+            SqlMetaData pName = new SqlMetaData("PName", SqlDbType.NVarChar, 100);
+            SqlMetaData pType = new SqlMetaData("PType", SqlDbType.NVarChar, 20);
+            SqlMetaData pValue = new SqlMetaData("PValue", SqlDbType.NVarChar, 100);
 
             foreach (SqlParameter sqlParam in comandParameters)
             {

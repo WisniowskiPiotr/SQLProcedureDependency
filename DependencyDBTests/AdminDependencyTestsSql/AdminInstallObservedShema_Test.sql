@@ -6,7 +6,7 @@ SET QUOTED_IDENTIFIER ON
 -- Drop Type
 IF EXISTS (
 		SELECT column1 
-		FROM dbo.testTable)
+		FROM dbo.TBL_TestTable)
 	BEGIN
 		SELECT 1
 	END

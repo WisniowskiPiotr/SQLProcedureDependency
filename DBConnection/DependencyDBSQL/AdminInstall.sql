@@ -77,6 +77,15 @@ IF NOT EXISTS (
 		'
 		EXEC( @V_Cmd);
 	END
+ELSE
+	BEGIN
+		SET @V_Cmd = '
+			ALTER USER ' + QUOTENAME(@V_UserName) + '
+				WITH DEFAULT_SCHEMA = ' + QUOTENAME(@V_SchemaName) +',
+				LOGIN = ' + QUOTENAME(@V_LoginName) + ';
+		'
+		EXEC( @V_Cmd);
+	END
 
 -- Create Route
 IF NOT EXISTS (

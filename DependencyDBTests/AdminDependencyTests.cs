@@ -27,7 +27,7 @@ namespace DBConnectionTests
             AdminDependencyDBInstance.AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
 
             // Try install
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.LoginPass, CommonTestsValues.MainServiceName);
 
             // Test install
             slqCommandText = string.Format(
@@ -42,7 +42,7 @@ namespace DBConnectionTests
             }
 
             // try instal with existing objects
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.LoginPass, CommonTestsValues.MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(
@@ -86,7 +86,7 @@ namespace DBConnectionTests
             }
             catch (Exception ex)
             {
-                if (!ex.InnerException.Message.Contains("SELECT permission was denied on the object 'testTable'"))
+                if (!ex.InnerException.Message.Contains("SELECT permission was denied on the object "))
                 {
                     throw ex;
                 }
@@ -131,7 +131,7 @@ namespace DBConnectionTests
             }
 
             // try instal again
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.MainServicePass, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultDBName, CommonTestsValues.LoginPass, CommonTestsValues.MainServiceName);
 
             // Test install2
             slqCommandText = string.Format(

@@ -169,14 +169,39 @@ namespace DBConnectionTests.Properties {
         ///SET ANSI_NULLS ON
         ///SET QUOTED_IDENTIFIER ON
         ///
+        ///
+        ///DECLARE @V_ReferencedSchema SYSNAME = &apos;{1}&apos;;
+        ///DECLARE @V_ReferencedTable SYSNAME = &apos;{2}&apos;;
+        ///
+        ///SET @V_Cmd = &apos;
+        ///	UPDATE &apos; + QUOTENAME( @V_ReferencedSchema ) + &apos;.&apos; + QUOTENAME( @V_ReferencedTable ) + &apos;
+        ///	SET column1 = 2
+        ///	WHERE column1 is null ;
+        ///	&apos;
+        ///
+        ///EXECUTE ( @V_Cmd ) ;.
+        /// </summary>
+        public static string SqlProcedures_ChangeData {
+            get {
+                return ResourceManager.GetString("SqlProcedures_ChangeData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON
+        ///SET QUOTED_IDENTIFIER ON
+        ///
         ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
         ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
         ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
         ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
         ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
         ///DECLARE @V_TableName SYSNAME = &apos;TBL_Subscribers&apos; ;
-        ///DECLARE @V_SubscriptionHash VARCHAR(max) = &apos;{2}&apos;;
-        ///DECLARE @V_SubscriberStrin [rest of string was truncated]&quot;;.
+        ///
+        ///DECLARE @V_SubscriberString VARCHAR(max) = &apos;{1}&apos;;
+        ///DECLARE @V_SubscriptionH [rest of string was truncated]&quot;;.
         /// </summary>
         public static string SqlProcedures_InstallSubscription {
             get {

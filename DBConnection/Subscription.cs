@@ -3,21 +3,24 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml.Linq;
 
 namespace DBConnection
 {
     public class Subscription : IEquatable<Subscription>
     {
-
+        public string AppName;
         public string SubscriberString;
         public string ProcedureSchemaName;
         public string ProcedureName;
         public SqlParameterCollection ProcedureParameters;
         public int ValidFor;
 
-        public Subscription( string subscriberString="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters=null, int validFor= 432000)
+        public Subscription(string appName="", string subscriberString="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters=null, int validFor= 432000)
         {
+            AppName = appName;
             SubscriberString = subscriberString;
             ProcedureSchemaName = procedureSchemaName;
             ProcedureName = procedureName;
@@ -25,9 +28,9 @@ namespace DBConnection
             ValidFor = validFor;
         }
 
-        public string GetHashText(string appName = "")
+        public string GetHashText()
         {
-            string hash = appName + ProcedureSchemaName + ProcedureName;
+            string hash = AppName + ProcedureSchemaName + ProcedureName;
             foreach (SqlParameter sqlParameter in ProcedureParameters)
             {
                 hash = hash + sqlParameter.ParameterName + sqlParameter.SqlDbType.GetName() + sqlParameter.Value.ToString();
@@ -37,7 +40,11 @@ namespace DBConnection
 
         public override int GetHashCode()
         {
-            int hash = this.GetHashText().GetHashCode();
+            var mystring = this.GetHashText();
+            MD5 md5Hasher = MD5.Create();
+            var hashed = md5Hasher.ComputeHash(Encoding.Unicode.GetBytes(mystring));
+            int hash = BitConverter.ToInt32(hashed, 0);
+            
             if (hash < 0)
                 return -hash;
             else

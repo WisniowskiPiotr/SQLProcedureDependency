@@ -14,7 +14,7 @@ DECLARE @V_TriggerName SYSNAME ;
 DECLARE CU_TriggersCursor CURSOR FOR
 	SELECT TBL_Triggers.name
 	FROM sys.triggers AS TBL_Triggers
-	WHERE TBL_Triggers.name LIKE @V_MainName + '%' ;
+	WHERE TBL_Triggers.name LIKE 'T_' + @V_MainName + '%' ;
 
 OPEN CU_TriggersCursor ;
 FETCH NEXT FROM CU_TriggersCursor 

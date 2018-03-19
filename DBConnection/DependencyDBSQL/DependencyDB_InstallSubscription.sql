@@ -11,8 +11,8 @@ PROCEDURE [{2}].[P_InstallSubscription]
 --	@V_SubscriberString NVARCHAR(200) = 'TestSubscriberString',
 --	@V_SubscriptionHash INT = '1234564',
 --	@V_ProcedureSchemaName SYSNAME = 'dbo',
---	@V_ProcedureName SYSNAME = 'TestProcedure',
---	@TBL_ProcedureParameters dbo.TYPE_ParametersType,
+--	@V_ProcedureName SYSNAME = 'P_TestProcedure',
+--	@TBL_ProcedureParameters [dbo].[TYPE_ParametersType] ,
 --	@V_NotificationValidFor INT = 30
 
 --INSERT INTO @TBL_ProcedureParameters (PName, Ptype, PValue)
@@ -155,6 +155,8 @@ BEGIN
 	DECLARE @V_ReferencedNonQuotedTable NVARCHAR(256) ;
 	DECLARE @V_ReferencedSchema SYSNAME ;
 	DECLARE @V_ReferencedTable SYSNAME ;
+	DECLARE @V_ReferencedTableType SYSNAME ;
+	DECLARE @V_ReferencedTableTypeDefinition NVARCHAR(max) ;
 	DECLARE CU_ReferencedTablesCursor CURSOR FOR
 		SELECT [SchemaName], 
 			[TableName]
@@ -164,7 +166,35 @@ BEGIN
 		INTO @V_ReferencedSchema, @V_ReferencedTable ;
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
-		
+			
+			-- need to create type to pass data to dynamic sql
+			SET @V_ReferencedTableType = 'TYPE_' + @V_ReferencedSchema + '_' + @V_ReferencedTable;
+			IF NOT EXISTS (
+				SELECT SysTypes.name 
+				FROM sys.types AS SysTypes
+				INNER JOIN sys.schemas AS SysSchemas
+					ON SysSchemas.schema_id = SysTypes.schema_id
+					AND SysSchemas.name = @V_SchemaName
+				WHERE 
+					SysTypes.is_table_type = 1  
+					AND SysTypes.name = @V_ReferencedTableType
+			)
+			BEGIN
+				SET @V_ReferencedTableTypeDefinition = (
+					SELECT ', ' + QUOTENAME( COLUMN_NAME ) + ' ' + QUOTENAME( DATA_TYPE ) + ' ' + ISNULL( '(' + CAST( CHARACTER_MAXIMUM_LENGTH AS SYSNAME) + ') NULL' , ' NULL' ) 
+					FROM INFORMATION_SCHEMA.COLUMNS
+					WHERE TABLE_NAME = @V_ReferencedTable
+						AND TABLE_SCHEMA = @V_ReferencedSchema
+					FOR XML PATH('')) ;
+				SET @V_ReferencedTableTypeDefinition = SUBSTRING( @V_ReferencedTableTypeDefinition , 2 , LEN(@V_ReferencedTableTypeDefinition))
+				
+				SET @V_Cmd = '
+					CREATE TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' AS TABLE (
+					' + @V_ReferencedTableTypeDefinition + '
+					); ' ;
+				EXEC sp_executesql @V_Cmd ;
+			END
+
 			SET @V_TriggerName = 'T_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
 			SET @V_TriggerNames = @V_TriggerNames + QUOTENAME( @V_TriggerName ) + ';'
 			SET @V_ReferencedQuotedTable = QUOTENAME( @V_ReferencedSchema ) + '.' + QUOTENAME( @V_ReferencedTable )
@@ -201,13 +231,13 @@ BEGIN
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, 'INSERTED') 
-										, @V_ReferencedNonQuotedTable , 'INSERTED') 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_INSERTED') 
+										, @V_ReferencedNonQuotedTable , '@TBL_INSERTED') 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
-							EXEC sp_executesql @V_Cmd ;
+							EXEC sp_executesql @V_Cmd, N''@TBL_INSERTED '  + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY'', @TBL_INSERTED = INSERTED ;
 
 							SET @V_MessageInserted = 
 								(SELECT *
@@ -226,13 +256,13 @@ BEGIN
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, 'DELETED') 
-										, @V_ReferencedNonQuotedTable , 'DELETED') 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_DELETED') 
+										, @V_ReferencedNonQuotedTable , '@TBL_DELETED') 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
-							EXEC sp_executesql @V_Cmd ;
+							EXEC sp_executesql @V_Cmd, N''@TBL_DELETED '  + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY'', @TBL_DELETED = DELETED ;
 
 							SET @V_MessageDeleted = 
 								(SELECT *
@@ -329,25 +359,50 @@ BEGIN
 	DEALLOCATE CU_ReferencedTablesCursor ;
 
 	SET @V_Cmd = '
-
-		INSERT INTO ' + QUOTENAME( @V_SchemaName ) + '.[TBL_SubscribersTable] (
-			[C_SubscriberString],
-			[C_SubscriptionHash],
-			[C_ProcedureSchemaName],
-			[C_ProcedureName],
-			[C_ProcedureParameters],
-			[C_TriggerNames],
-			[C_ValidTill]
+		
+		IF EXISTS (
+			SELECT [C_SubscriptionHash]
+			FROM ' + QUOTENAME( @V_SchemaName ) + '.[TBL_SubscribersTable] AS TBL_SubscribersTable
+			WHERE [C_SubscriberString] = ''' + QUOTENAME( @V_SubscriberString ) + '''
+				AND [C_SubscriptionHash] = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
+				AND [C_ProcedureSchemaName] = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''
+				AND [C_ProcedureName] = ''' + QUOTENAME( @V_ProcedureName ) + '''
+				AND [C_ProcedureParameters] = ''' + @V_ProcedureParametersXlm + '''
+				AND [C_TriggerNames] = ''' + @V_TriggerNames + '''
+				AND [C_ValidTill] > GETDATE()
 		)
-		VALUES (
-			''' + QUOTENAME( @V_SubscriberString ) + ''',
-			' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ',
-			''' + QUOTENAME( @V_ProcedureSchemaName ) + ''',
-			''' + QUOTENAME( @V_ProcedureName ) + ''',
-			''' + @V_ProcedureParametersXlm + ''',
-			''' + @V_TriggerNames + ''',
-			''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + '''
-		) ;
+			BEGIN
+				UPDATE ' + QUOTENAME( @V_SchemaName ) + '.[TBL_SubscribersTable]
+				SET [C_ValidTill] = ''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + '''
+				WHERE [C_SubscriberString] = ''' + QUOTENAME( @V_SubscriberString ) + '''
+					AND [C_SubscriptionHash] = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
+					AND [C_ProcedureSchemaName] = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''
+					AND [C_ProcedureName] = ''' + QUOTENAME( @V_ProcedureName ) + '''
+					AND [C_ProcedureParameters] = ''' + @V_ProcedureParametersXlm + '''
+					AND [C_TriggerNames] = ''' + @V_TriggerNames + '''
+					AND [C_ValidTill] > GETDATE()
+			END
+		ELSE
+			BEGIN
+				INSERT INTO ' + QUOTENAME( @V_SchemaName ) + '.[TBL_SubscribersTable] (
+					[C_SubscriberString],
+					[C_SubscriptionHash],
+					[C_ProcedureSchemaName],
+					[C_ProcedureName],
+					[C_ProcedureParameters],
+					[C_TriggerNames],
+					[C_ValidTill]
+				)
+				VALUES (
+					''' + QUOTENAME( @V_SubscriberString ) + ''',
+					' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ',
+					''' + QUOTENAME( @V_ProcedureSchemaName ) + ''',
+					''' + QUOTENAME( @V_ProcedureName ) + ''',
+					''' + @V_ProcedureParametersXlm + ''',
+					''' + @V_TriggerNames + ''',
+					''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + '''
+				) ;
+			END
 	'
 	EXEC sp_executesql @V_Cmd ;
 	RETURN ;

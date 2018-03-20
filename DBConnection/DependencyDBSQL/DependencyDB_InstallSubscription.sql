@@ -190,6 +190,13 @@ BEGIN
 					DECLARE @V_Retval NVARCHAR(MAX) ;
 					DECLARE @V_Cmd NVARCHAR(MAX) ;
 
+					DECLARE @V_Debug NVARCHAR(MAX) ;
+
+					SET @V_Debug = ''''
+					INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+					VALUES ( @V_Debug, ''Trigger started'' )
+
+
 					' + @V_ResultTableDefinition + '
 									
 					-- inner procedure
@@ -199,25 +206,45 @@ BEGIN
 							FROM INSERTED
 					)
 						BEGIN
-							INSERT INTO #TBL_Tmp_INSERTED
+							INSERT INTO #TBL_TmpI' + @V_TriggerName + '
 							SELECT * 
 							FROM INSERTED
+
+							SET @V_Debug = (
+								SELECT *
+								FROM INSERTED
+								FOR XML AUTO
+							)
+							INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+							VALUES ( @V_Debug, ''INSERTED Data'' )
 
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_Tmp_INSERTED') 
-										, @V_ReferencedNonQuotedTable , '#TBL_Tmp_INSERTED') 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_TmpI' + @V_TriggerName) 
+										, @V_ReferencedNonQuotedTable , '#TBL_TmpI' + @V_TriggerName) 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
 							EXEC sp_executesql @V_Cmd ;
 
+							SET @V_Debug = (
+								SELECT *
+								FROM @TBL_ResultTable
+								FOR XML AUTO
+							)
+							INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+							VALUES ( @V_Debug, ''ResultTable inserted Data'' )
+
 							SET @V_MessageInserted = 
 								(SELECT *
 									FROM @TBL_ResultTable
 									FOR XML PATH(''row''), ROOT(''inserted'')) ;
+
+							SET @V_Debug = @V_MessageInserted
+							INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+							VALUES ( @V_Debug, ''MessageInserted Data'' )
 
 							DELETE FROM @TBL_ResultTable ;
 						END
@@ -229,25 +256,45 @@ BEGIN
 					)
 						BEGIN
 
-							INSERT INTO #TBL_Tmp_DELETED
+							INSERT INTO #TBL_TmpD' + @V_TriggerName + '
 							SELECT * 
 							FROM DELETED
+
+							SET @V_Debug = (
+								SELECT *
+								FROM DELETED
+								FOR XML AUTO
+							)
+							INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+							VALUES ( @V_Debug, ''DELETED Data'' )
 
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_Tmp_DELETED') 
-										, @V_ReferencedNonQuotedTable , '#TBL_Tmp_DELETED') 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_TmpD' + @V_TriggerName ) 
+										, @V_ReferencedNonQuotedTable , '#TBL_TmpD' + @V_TriggerName) 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
 							EXEC sp_executesql @V_Cmd ;
 
+							SET @V_Debug = (
+								SELECT *
+								FROM @TBL_ResultTable
+								FOR XML AUTO
+							)
+							INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+							VALUES ( @V_Debug, ''ResultTable Deleted Data'' )
+
 							SET @V_MessageDeleted = 
 								(SELECT *
 									FROM @TBL_ResultTable
 									FOR XML PATH(''row''), ROOT(''deleted'')) ;
+
+							SET @V_Debug = @V_MessageDeleted
+							INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+							VALUES ( @V_Debug, ''MessageDeleted Data'' )
 
 							DELETE FROM @TBL_ResultTable ;
 						END
@@ -278,6 +325,10 @@ BEGIN
 									IF @V_MessageDeleted IS NOT NULL 
 										SET @V_Message = @V_Message + @V_MessageDeleted
 									SET @V_Message = @V_Message + ''</notification>''
+
+									SET @V_Debug = @V_Message
+									INSERT INTO dbo.TBL_DebugTable ( xmltext, msg )
+									VALUES ( @V_Debug, ''Message Data'' )
 
 									--Beginning of dialog...
                 					DECLARE @V_ConvHandle UNIQUEIDENTIFIER

@@ -11,6 +11,9 @@ SET @V_Cmd = '
 	UPDATE ' + QUOTENAME( @V_ReferencedSchema ) + '.' + QUOTENAME( @V_ReferencedTable ) + '
 	SET column1 = 2
 	WHERE column1 is null ;
+	INSERT INTO ' + QUOTENAME( @V_ReferencedSchema ) + '.' + QUOTENAME( @V_ReferencedTable ) + ' ( column1, column2 )
+	VALUES ( null, 1);
+
 	'
 
 EXECUTE ( @V_Cmd ) ;

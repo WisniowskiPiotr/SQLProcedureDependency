@@ -20,14 +20,14 @@ PROCEDURE [{2}].[P_InstallSubscription]
 BEGIN
 	
 	SET NOCOUNT ON; 
-	DECLARE @V_MainName SYSNAME = 'DependencyDB' ;
+	DECLARE @V_MainName SYSNAME = '{0}' ;
 	DECLARE @V_Cmd NVARCHAR(max);
 
 	DECLARE @V_LoginName SYSNAME = 'L_' + @V_MainName;
-	DECLARE @V_SchemaName SYSNAME = 'S_DependencyDB';
+	DECLARE @V_SchemaName SYSNAME = '{2}';
 	DECLARE @V_UserName SYSNAME = 'U_' + @V_MainName;
 	DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName;
-	DECLARE @V_ServiceName SYSNAME = 'ServiceDependencyDB';
+	DECLARE @V_ServiceName SYSNAME = '{1}' ;
 	DECLARE @V_ExceptionMessage NVARCHAR(max);
 
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
@@ -155,6 +155,8 @@ BEGIN
 	DECLARE @V_ReferencedNonQuotedTable NVARCHAR(256) ;
 	DECLARE @V_ReferencedSchema SYSNAME ;
 	DECLARE @V_ReferencedTable SYSNAME ;
+	DECLARE @V_ReferencedTableType SYSNAME ;
+	DECLARE @V_ReferencedTableTypeDefinition NVARCHAR(max) ;
 	DECLARE CU_ReferencedTablesCursor CURSOR FOR
 		SELECT [SchemaName], 
 			[TableName]
@@ -165,6 +167,33 @@ BEGIN
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 			
+			-- need to create type to pass data to dynamic sql
+			SET @V_ReferencedTableType = 'TYPE_' + @V_ReferencedSchema + '_' + @V_ReferencedTable;
+			IF NOT EXISTS (
+				SELECT SysTypes.name 
+				FROM sys.types AS SysTypes
+				INNER JOIN sys.schemas AS SysSchemas
+					ON SysSchemas.schema_id = SysTypes.schema_id
+					AND SysSchemas.name = @V_SchemaName
+				WHERE 
+					SysTypes.is_table_type = 1  
+					AND SysTypes.name = @V_ReferencedTableType
+			)
+			BEGIN
+				SET @V_ReferencedTableTypeDefinition = (
+					SELECT ', ' + QUOTENAME( COLUMN_NAME ) + ' ' + QUOTENAME( DATA_TYPE ) + ' ' + ISNULL( '(' + CAST( CHARACTER_MAXIMUM_LENGTH AS SYSNAME) + ') NULL' , ' NULL' ) 
+					FROM INFORMATION_SCHEMA.COLUMNS
+					WHERE TABLE_NAME = @V_ReferencedTable
+						AND TABLE_SCHEMA = @V_ReferencedSchema
+					FOR XML PATH('')) ;
+				SET @V_ReferencedTableTypeDefinition = SUBSTRING( @V_ReferencedTableTypeDefinition , 2 , LEN(@V_ReferencedTableTypeDefinition))
+				
+				SET @V_Cmd = '
+					CREATE TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' AS TABLE (
+					' + @V_ReferencedTableTypeDefinition + '
+					); ' ;
+				EXEC sp_executesql @V_Cmd ;
+			END
 
 			SET @V_TriggerName = 'T_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
 			SET @V_TriggerNames = @V_TriggerNames + QUOTENAME( @V_TriggerName ) + ';'
@@ -206,7 +235,9 @@ BEGIN
 							FROM INSERTED
 					)
 						BEGIN
-							INSERT INTO #TBL_TmpI' + @V_TriggerName + '
+							
+							DECLARE @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
+							INSERT INTO @TBL_INSERTED
 							SELECT * 
 							FROM INSERTED
 
@@ -221,13 +252,13 @@ BEGIN
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_TmpI' + @V_TriggerName) 
-										, @V_ReferencedNonQuotedTable , '#TBL_TmpI' + @V_TriggerName) 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_INSERTED') 
+										, @V_ReferencedNonQuotedTable , '@TBL_INSERTED') 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
-							EXEC sp_executesql @V_Cmd ;
+							EXEC sp_executesql @V_Cmd, N'' @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_INSERTED = @TBL_INSERTED ;
 
 							SET @V_Debug = (
 								SELECT *
@@ -256,7 +287,8 @@ BEGIN
 					)
 						BEGIN
 
-							INSERT INTO #TBL_TmpD' + @V_TriggerName + '
+							DECLARE @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
+							INSERT INTO @TBL_DELETED
 							SELECT * 
 							FROM DELETED
 
@@ -271,13 +303,13 @@ BEGIN
 							SET @V_Cmd = 
 								''' + REPLACE( 
 										REPLACE( 
-											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '#TBL_TmpD' + @V_TriggerName ) 
-										, @V_ReferencedNonQuotedTable , '#TBL_TmpD' + @V_TriggerName) 
+											REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_DELETED'  ) 
+										, @V_ReferencedNonQuotedTable , '@TBL_DELETED' ) 
 									, '''', '''''' ) + ''' ;
 
 
 							INSERT INTO @TBL_ResultTable
-							EXEC sp_executesql @V_Cmd ;
+							EXEC sp_executesql @V_Cmd, N'' @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_DELETED = @TBL_DELETED ;
 
 							SET @V_Debug = (
 								SELECT *
@@ -335,7 +367,7 @@ BEGIN
                 					--Determine the Initiator Service, Target Service and the Contract 
                 					BEGIN DIALOG @V_ConvHandle 
 										FROM SERVICE ' + QUOTENAME( @V_ServiceName ) + ' 
-										TO SERVICE ''' + QUOTENAME( @V_ServiceName ) + ''' 
+										TO SERVICE ''' + @V_ServiceName + ''' 
 										ON CONTRACT [DEFAULT] 
 										WITH ENCRYPTION = OFF, 
 										LIFETIME = ' + CAST( @V_NotificationValidFor AS NVARCHAR(200)) + '; 
@@ -405,7 +437,7 @@ BEGIN
 			BEGIN
 				UPDATE ' + QUOTENAME( @V_SchemaName ) + '.[TBL_SubscribersTable]
 				SET [C_ValidTill] = ''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + '''
-				WHERE [C_SubscriberString] = ''' + QUOTENAME( @V_SubscriberString ) + '''
+				WHERE [C_SubscriberString] = ''' +  @V_SubscriberString  + '''
 					AND [C_SubscriptionHash] = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
 					AND [C_ProcedureSchemaName] = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''
 					AND [C_ProcedureName] = ''' + QUOTENAME( @V_ProcedureName ) + '''
@@ -425,7 +457,7 @@ BEGIN
 					[C_ValidTill]
 				)
 				VALUES (
-					''' + QUOTENAME( @V_SubscriberString ) + ''',
+					''' + @V_SubscriberString  + ''',
 					' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ',
 					''' + QUOTENAME( @V_ProcedureSchemaName ) + ''',
 					''' + QUOTENAME( @V_ProcedureName ) + ''',
@@ -436,7 +468,7 @@ BEGIN
 			END
 	'
 	EXEC sp_executesql @V_Cmd ;
-	RETURN ;
+	RETURN 
 END ;
 
 

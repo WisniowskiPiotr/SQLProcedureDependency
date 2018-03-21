@@ -85,6 +85,28 @@ IF EXISTS(
 		EXEC ( @V_Cmd );
 	END
 
+-- Remove types
+DECLARE @V_TypeName SYSNAME ; 
+DECLARE CU_Type CURSOR FOR
+	SELECT SysTypes.name 
+	FROM sys.types AS SysTypes
+	INNER JOIN sys.schemas AS SysSchemas
+		ON SysSchemas.schema_id = SysTypes.schema_id
+		AND SysSchemas.name = @V_SchemaName
+	WHERE 
+		SysTypes.is_table_type = 1;
+OPEN CU_Type ;
+FETCH NEXT FROM CU_Type 
+	INTO @V_TypeName ;
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SET @V_Cmd = '
+			DROP TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_TypeName) + ' ; ' ;
+		EXEC sp_executesql @V_Cmd ;
+	END
+CLOSE CU_Type ;
+DEALLOCATE CU_Type ;
+
 -- Remove Service
 IF EXISTS(
 	SELECT name

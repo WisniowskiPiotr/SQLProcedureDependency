@@ -52,9 +52,9 @@ namespace DBConnectionTests
                 );
             sqlCommand = new SqlCommand(slqCommandText);
             serviceAccessDBAdmin.SQLRunNonQueryProcedure(sqlCommand);
-            //List<EventMessage> notifications = SqlProceduresInstance.ReceiveSubscription();
-            //if (notifications == null || notifications.Count == 0)
-            //    Assert.Fail("Coudnt receive notification");
+            List<EventMessage> notifications = SqlProceduresInstance.ReceiveSubscription(30);
+            if (notifications == null || notifications.Count == 0)
+                Assert.Fail("Coudnt receive notification");
 
             //// uninstall notification
             //SqlProceduresInstance.UninstallSubscription(subscription);

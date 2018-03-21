@@ -137,7 +137,7 @@ BEGIN
 							ON QUOTENAME( TBL_Triggers.name ) = TBL_TriggerNames.value
 						INNER JOIN sys.objects AS TBL_Objects
 							ON TBL_Objects.object_id = TBL_Triggers.parent_id
-							AND TBL_Objects.type_desc = 'USER_TABLE'
+							--AND TBL_Objects.type_desc = 'USER_TABLE'
 						INNER JOIN sys.schemas AS TBL_Schemas
 							ON TBL_Schemas.schema_id = TBL_Objects.schema_id
 						GROUP BY TBL_Triggers.name,
@@ -168,6 +168,24 @@ BEGIN
 
 							COMMIT TRANSACTION;
 
+							DECLARE @V_ReferencedTableType SYSNAME ;
+							SET @V_ReferencedTableType = 'TYPE_' + @V_TableSchemaName + '_' + @V_TableName;
+							IF EXISTS (
+								SELECT SysTypes.name 
+								FROM sys.types AS SysTypes
+								INNER JOIN sys.schemas AS SysSchemas
+									ON SysSchemas.schema_id = SysTypes.schema_id
+									AND SysSchemas.name = @V_SchemaName
+								WHERE 
+									SysTypes.is_table_type = 1  
+									AND SysTypes.name = @V_ReferencedTableType
+							)
+								BEGIN
+									SET @V_Cmd = '
+										DROP TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' ; ' ;
+									EXEC sp_executesql @V_Cmd ;
+								END
+
 							FETCH NEXT FROM CU_TriggersToBeRemovedCursor 
 								INTO @V_TriggerName,
 									@V_TableName,
@@ -176,7 +194,6 @@ BEGIN
 					CLOSE CU_TriggersToBeRemovedCursor ;
 					DEALLOCATE CU_TriggersToBeRemovedCursor ;
 
-					
 			END
 
 			FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 

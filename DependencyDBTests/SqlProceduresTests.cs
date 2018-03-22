@@ -12,67 +12,45 @@ namespace DBConnectionTests
     [TestClass]
     public class SqlProceduresTests
     {
-        const string MainServiceName = "DependencyDB";
-        SqlProcedures SqlProceduresInstance = new SqlProcedures(MainServiceName, CommonTestsValues.ServiceConnectionString);
+        SqlProcedures SqlProceduresInstance = new SqlProcedures( CommonTestsValues.ServiceConnectionString);
         AccessDB serviceAccessDB = new AccessDB(CommonTestsValues.ServiceConnectionString);
         AccessDB serviceAccessDBAdmin = new AccessDB(CommonTestsValues.AdminConnectionString);
 
-        [TestMethod]
-        public void GetSubscription()
+        public static SqlParameterCollection GetSqlParameterCollectionForTestProcedure(int param1=0, int param2=0, bool insert1=false, bool insert2 = false, bool delete1 = false, bool delete2 = false)
         {
-            // instal subs
-            string slqCommandText;
             SqlCommand sqlCommand = new SqlCommand();
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("param1", SqlDbType.Int, 1));
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("param2", SqlDbType.Int, 1));
-            Subscription subscription = new Subscription("TestApp", "subscriberString", "dbo", "P_TestProcedure", sqlCommand.Parameters);
+            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, param1));
+            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, param2));
+            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, insert1));
+            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, insert2));
+            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, delete1));
+            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, delete2));
+            return sqlCommand.Parameters;
+        }
+
+        [TestMethod]
+        public void SetSubscription()
+        {
+            SetDBState.SetAdminInstalledDB(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
+
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 20);
+            Subscription subscription = new Subscription(CommonTestsValues.MainServiceName, CommonTestsValues.FirstSunscriberName, CommonTestsValues.SubscribedProcedureSchema, CommonTestsValues.SubscribedProcedureName, sqlParameters);
             SqlProceduresInstance.InstallSubscription(subscription);
 
-            slqCommandText = string.Format(
-                Resources.SqlProcedures_InstallSubscription,
+            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(Resources.SetSubscription_Test, false,
+                CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
-                subscription.SubscriberString,
-                subscription.GetHashCode().ToString(),
-                "dbo",
-                "TBL_TestTable"
-                );
-            sqlCommand = new SqlCommand(slqCommandText);
-            List<Tuple<int>> testResult = serviceAccessDB.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
-            if (testResult.Count != 1 && testResult[0].Item1 != 1)
+                CommonTestsValues.LoginName,
+                CommonTestsValues.SchemaName,
+                CommonTestsValues.Username,
+                CommonTestsValues.QueryName,
+                CommonTestsValues.ServiceName,
+                CommonTestsValues.SubscribersTableName,
+                CommonTestsValues.FirstSunscriberName);
+            if (testResult.Count != 1 && !string.IsNullOrWhiteSpace(testResult[0].Item1))
             {
-                Assert.Fail("Not all objects created during install.");
+                Assert.Fail(testResult[0].Item1);
             }
-
-            // change data and receive notification
-            slqCommandText = string.Format(
-                Resources.SqlProcedures_ChangeData,
-                CommonTestsValues.MainServiceName,
-                "dbo",
-                "TBL_TestTable"
-                );
-            sqlCommand = new SqlCommand(slqCommandText);
-            serviceAccessDBAdmin.SQLRunNonQueryProcedure(sqlCommand);
-            List<EventMessage> notifications = SqlProceduresInstance.ReceiveSubscription(30);
-            if (notifications == null || notifications.Count == 0)
-                Assert.Fail("Coudnt receive notification");
-
-            //// uninstall notification
-            //SqlProceduresInstance.UninstallSubscription(subscription);
-
-            //slqCommandText = string.Format(
-            //    Resources.SqlProcedures_InstallSubscription,
-            //    CommonTestsValues.MainServiceName,
-            //    subscription.SubscriberString,
-            //    subscription.GetHashCode().ToString(),
-            //    "dbo",
-            //    "TBL_TestTable"
-            //    );
-            //sqlCommand = new SqlCommand(slqCommandText);
-            //List<Tuple<int>> testResult2 = serviceAccessDB.SQLRunQueryProcedure<Tuple<int>>(sqlCommand);
-            //if (testResult2.Count != 1 && testResult2[0].Item1 != 0)
-            //{
-            //    Assert.Fail("Not all objects created during install.");
-            //}
         }
     }
 }

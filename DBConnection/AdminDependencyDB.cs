@@ -20,9 +20,13 @@ namespace DBConnection
         /// Create AdminDependencyDB which allows manipulation on DependencyDB Admin provilages.
         /// </summary>
         /// <param name="connectionString"> Connection string with admin provilages used to connect to DB. </param>
-        public AdminDependencyDB(string connectionString)
+        public AdminDependencyDB(string connectionString, int sqlQueryTimeout = 30)
         {
-            AccessDBInstance = new AccessDB(connectionString);
+            AccessDBInstance = new AccessDB(connectionString, sqlQueryTimeout);
+        }
+        public AdminDependencyDB(AccessDB accessDBInstance)
+        {
+            AccessDBInstance = accessDBInstance;
         }
 
         /// <summary>
@@ -34,41 +38,23 @@ namespace DBConnection
         /// <param name="password"> Password used for newly created DependencyDB login. </param>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
         /// <param name="observedShema"> Shema name which can be observed by DependencyDB. </param>
-        public void AdminInstall( string databaseName, string password, string mainServiceName = "DependencyDB", string observedShema="dbo")
+        public void AdminInstall( string databaseName, string mainServiceName, string password, string observedShema="dbo")
         {
             TestName(mainServiceName);
 
-            string instalProcedureText = string.Format(
-                Resources.DependencyDB_InstallSubscription,
-                mainServiceName,
-                "Service" + mainServiceName,
-                "S_"+ mainServiceName).Replace("'","''");
+            string instalProcedureText = Resources.P_InstallSubscription.Replace("'","''");
+            string receiveProcedureText = Resources.P_ReceiveSubscription.Replace("'", "''");
+            string uninstalProcedureText = Resources.P_UninstallSubscription.Replace("'", "''");
 
-            string receiveProcedureText = string.Format(
-                Resources.DependencyDB_ReceiveSubscription,
-                mainServiceName,
-                "Service" + mainServiceName,
-                "S_" + mainServiceName).Replace("'", "''");
-
-            string uninstalProcedureText = string.Format(
-                Resources.DependencyDB_UninstallSubscription,
-                mainServiceName,
-                "Service" + mainServiceName,
-                "S_" + mainServiceName).Replace("'", "''");
-
-            string slqCommandText = string.Format(
-                Resources.AdminInstall,
-                mainServiceName,
-                password,
+            RunFile(Resources.AdminInstall, 
                 databaseName,
-                instalProcedureText,
-                receiveProcedureText,
-                uninstalProcedureText
-                );
-            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
+                mainServiceName, 
+                password, 
+                instalProcedureText, 
+                receiveProcedureText, 
+                uninstalProcedureText);
 
-            AdminInstallObservedShema(observedShema);
+            AdminGrantObservedShema(databaseName, mainServiceName, observedShema);
         }
 
         /// <summary>
@@ -77,36 +63,29 @@ namespace DBConnection
         /// <param name="observedShema"> Name of observed shema. </param>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
         /// <param name="allow"> If true grants provilages. Othervise revoke provilages. </param>
-        public void AdminInstallObservedShema(string observedShema, string mainServiceName = "DependencyDB", bool allow = true)
+        public void AdminGrantObservedShema(string databaseName, string mainServiceName, string observedShema)
         {
             // TODO: maybe it should be better to add provilages only to observed procedure and required tables?
             TestName(mainServiceName);
-            string sqlCommandText;
-            if (allow)
-                sqlCommandText = Resources.AdminAddObservedShema;
-            else
-                sqlCommandText = Resources.AdminRemoveObservedShema;
-            string slqCommandText = string.Format(
-                sqlCommandText,
-                mainServiceName,
-                observedShema);
-            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
+            RunFile(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema);
+        }
+        public void AdminRevokeObservedShema(string databaseName, string mainServiceName, string observedShema)
+        {
+            // TODO: maybe it should be better to add provilages only to observed procedure and required tables?
+            TestName(mainServiceName);
+            RunFile(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema);
         }
 
         /// <summary>
         /// Removes all objects created by AdminInstall method and DependencyDB with exception of AutoCreatedLocal route and disabling brooker setting as other things may depend on it.
         /// </summary>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
-        public void AdminUnInstall(string mainServiceName)
+        public void AdminUnInstall(string databaseName, string mainServiceName)
         {
             TestName(mainServiceName);
-            string slqCommandText = string.Format(
-                Resources.AdminUnInstall,
-                mainServiceName
-                );
-            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
-            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
+
+
+            RunFile(Resources.AdminUninstall, databaseName, mainServiceName);
         }
 
         /// <summary>
@@ -128,6 +107,13 @@ namespace DBConnection
                     throw new ArgumentException("Provided string for mainServiceName has characters from outside of allowed range. Please check i the name consists only chars from range: \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_#$@1234567890\". This is mainly good practise but unexpected results may occur when disabling this test.");
                 }
             }
+        }
+
+        private void RunFile(string fileContent, params string[] replacements)
+        {
+            string slqCommandText = string.Format(fileContent, replacements);
+            SqlCommand sqlCommand = new SqlCommand(slqCommandText);
+            AccessDBInstance.SQLRunNonQueryProcedure(sqlCommand);
         }
     }
 }

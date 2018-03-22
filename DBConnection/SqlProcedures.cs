@@ -9,34 +9,23 @@ namespace DBConnection
     public class SqlProcedures
     {
         public AccessDB AccessDBInstance { get; }
-        public string AppName { get; }
-        private string ProcedureNameInstall;
-        private string ProcedureNameReceiveNotification;
-        private string ProcedureNameUninstall;
-        // max object name length is 128 ex. 'MemSourceAPI' (appName) 
-        public SqlProcedures(string appName, string connectionString, int queryTimeout=30)
-        {
-            AppName = appName;
-            AccessDBInstance = new AccessDB(connectionString, queryTimeout);
-            SetProcedureNames("S_" + appName);
-        }
-        public SqlProcedures(string appName, AccessDB accessDB)
-        {
-            AppName = appName;
-            AccessDBInstance = accessDB;
-            SetProcedureNames("S_"+appName);
-        }
+        private string ProcedureNameInstall = "[P_InstallSubscription]";
+        private string ProcedureNameReceiveNotification = "[P_ReceiveSubscription]";
+        private string ProcedureNameUninstall = "[P_UninstallSubscription]";
 
-        private void SetProcedureNames(string schemaName)
+        public SqlProcedures( string connectionString, int queryTimeout=30)
         {
-            ProcedureNameInstall = "[" + schemaName + "].[P_InstallSubscription]";
-            ProcedureNameReceiveNotification = "[" + schemaName + "].[P_ReceiveSubscription]";
-            ProcedureNameUninstall = "[" + schemaName + "].[P_UninstallSubscription]";
+            AccessDBInstance = new AccessDB(connectionString, queryTimeout);
+        }
+        public SqlProcedures( AccessDB accessDB)
+        {
+            AccessDBInstance = accessDB;
         }
 
         public void InstallSubscription(Subscription subscription)
         {
-            SqlCommand command = new SqlCommand(ProcedureNameInstall);
+            string schemaName = "[" + subscription.MainServiceName + "]";
+            SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameInstall);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriberString", SqlDbType.NVarChar, subscription.SubscriberString));
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriptionHash", SqlDbType.Int, subscription.GetHashCode()));
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ProcedureSchemaName", SqlDbType.NVarChar, subscription.ProcedureSchemaName));
@@ -46,9 +35,10 @@ namespace DBConnection
             AccessDBInstance.SQLRunNonQueryProcedure(command);
         }
 
-        public List<EventMessage> ReceiveSubscription(int receiveTimeout= 150000)
+        public List<EventMessage> ReceiveSubscription(string appName, int receiveTimeout= 150000)
         {
-            SqlCommand command = new SqlCommand(ProcedureNameReceiveNotification);
+            string schemaName = "[" + appName + "]";
+            SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameReceiveNotification);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ReceiveTimeout", SqlDbType.Int, receiveTimeout));
             List<EventMessage> result = AccessDBInstance.SQLRunQueryProcedure<EventMessage>(command, receiveTimeout);
             return result;
@@ -56,7 +46,8 @@ namespace DBConnection
         
         public void UninstallSubscription(Subscription subscription)
         {
-            SqlCommand command = new SqlCommand(ProcedureNameUninstall);
+            string schemaName = "[" + subscription.MainServiceName + "]";
+            SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameUninstall);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriberString", SqlDbType.NVarChar, subscription.SubscriberString));
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriptionHash", SqlDbType.Int, subscription.GetHashCode()));
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ProcedureSchemaName", SqlDbType.NVarChar, subscription.ProcedureSchemaName));
@@ -76,7 +67,7 @@ namespace DBConnection
             List<SqlDataRecord> procedureParameters = new List<SqlDataRecord>();
             SqlMetaData pName = new SqlMetaData("PName", SqlDbType.NVarChar, 100);
             SqlMetaData pType = new SqlMetaData("PType", SqlDbType.NVarChar, 20);
-            SqlMetaData pValue = new SqlMetaData("PValue", SqlDbType.NVarChar, 100);
+            SqlMetaData pValue = new SqlMetaData("PValue", SqlDbType.NVarChar, 4000);
 
             foreach (SqlParameter sqlParam in comandParameters)
             {

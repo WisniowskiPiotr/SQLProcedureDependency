@@ -62,51 +62,22 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///   Looks up a localized string similar to 
         ///DECLARE @V_Cmd NVARCHAR(max);
-        ///SET ANSI_NULLS ON
-        ///SET QUOTED_IDENTIFIER ON
+        ///SET ANSI_NULLS ON;
+        ///SET QUOTED_IDENTIFIER ON;
+        ///SET NOCOUNT ON; 
         ///
-        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
-        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
-        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
-        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
-        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
-        ///
-        ///-- Uninstall all triggers
-        ///DECLARE @V_TriggerName SYSNAME ;
-        ///DECLARE CU_TriggersCursor CURSOR FOR
-        ///	SELECT TBL_Triggers.name
-        ///	 [rest of string was truncated]&quot;;.
-        /// </summary>
-        public static string AdminInstall_Cleanup {
-            get {
-                return ResourceManager.GetString("AdminInstall_Cleanup", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
-        ///DECLARE @V_Cmd NVARCHAR(max);
-        ///SET ANSI_NULLS ON
-        ///SET QUOTED_IDENTIFIER ON
-        ///
-        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
-        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
-        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
-        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
-        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
-        ///
-        ///IF 
-        ///	EXISTS (
-        ///		SELECT name
-        ///		FROM sys.routes
-        ///		WHERE name = &apos;AutoCreatedLocal&apos;
-        ///	)
-        ///	AND
-        ///	EXISTS (
-        ///		SELECT name
-        ///		FROM [rest of string was truncated]&quot;;.
+        ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
+        ///DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
+        ///DECLARE @V_LoginName SYSNAME = &apos;{2}&apos; ;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;{3}&apos; ;
+        ///DECLARE @V_UserName SYSNAME = &apos;{4}&apos; ;
+        ///DECLARE @V_QueueName SYSNAME = &apos;{5}&apos; ;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;{6}&apos; ;
+        ///DECLARE @V_SubscribersTableName SYSNAME = &apos;{7}&apos; ;
+        ///DECLARE @V_ParametersTypeName SYSNAME = &apos;TYPE_ParametersType&apos;;
+        ///DECLARE @V_InstallP [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminInstall_Test {
             get {
@@ -115,47 +86,22 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///   Looks up a localized string similar to 
         ///DECLARE @V_Cmd NVARCHAR(max);
-        ///SET ANSI_NULLS ON
-        ///SET QUOTED_IDENTIFIER ON
+        ///SET ANSI_NULLS ON;
+        ///SET QUOTED_IDENTIFIER ON;
+        ///SET NOCOUNT ON; 
         ///
-        ///-- Drop Type
-        ///IF EXISTS (
-        ///		SELECT column1 
-        ///		FROM dbo.TBL_TestTable)
-        ///	BEGIN
-        ///		SELECT 1
-        ///	END
-        ///ELSE
-        ///	BEGIN
-        ///		SELECT 0
-        ///	END.
-        /// </summary>
-        public static string AdminInstallObservedShema_Test {
-            get {
-                return ResourceManager.GetString("AdminInstallObservedShema_Test", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
-        ///DECLARE @V_Cmd NVARCHAR(max);
-        ///SET ANSI_NULLS ON
-        ///SET QUOTED_IDENTIFIER ON
-        ///
-        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
-        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
-        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
-        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
-        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
-        ///
-        ///-- Drop Type
-        ///IF NOT EXISTS(
-        ///		SELECT SysTables.name
-        ///		FROM sys.tables AS SysTables
-        ///		INNER JOIN sys.schemas AS SysSchemas
-        /// [rest of string was truncated]&quot;;.
+        ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
+        ///DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
+        ///DECLARE @V_LoginName SYSNAME = &apos;{2}&apos; ;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;{3}&apos; ;
+        ///DECLARE @V_UserName SYSNAME = &apos;{4}&apos; ;
+        ///DECLARE @V_QueueName SYSNAME = &apos;{5}&apos; ;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;{6}&apos; ;
+        ///DECLARE @V_SubscribersTableName SYSNAME = &apos;{7}&apos; ;
+        ///DECLARE @V_ParametersTypeName SYSNAME = &apos;TYPE_ParametersType&apos;;
+        ///DECLARE @V_InstallP [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminUnInstall_Test {
             get {
@@ -164,48 +110,62 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///   Looks up a localized string similar to 
         ///DECLARE @V_Cmd NVARCHAR(max);
         ///SET ANSI_NULLS ON
         ///SET QUOTED_IDENTIFIER ON
         ///
+        ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos;;
         ///
-        ///DECLARE @V_ReferencedSchema SYSNAME = &apos;{1}&apos;;
-        ///DECLARE @V_ReferencedTable SYSNAME = &apos;{2}&apos;;
-        ///
+        ///-- drop DB
         ///SET @V_Cmd = &apos;
-        ///	UPDATE &apos; + QUOTENAME( @V_ReferencedSchema ) + &apos;.&apos; + QUOTENAME( @V_ReferencedTable ) + &apos;
-        ///	SET column1 = 2
-        ///	WHERE column1 is null ;
-        ///	&apos;
+        ///	DROP DATABASE IF EXISTS &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
+        ///&apos; ;
+        ///EXEC ( @V_Cmd );
         ///
-        ///EXECUTE ( @V_Cmd ) ;.
+        ///-- create DB
+        ///SET @V_Cmd = &apos;
+        ///	CREATE DATABASE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
+        ///&apos; ;
+        ///EXEC ( @V_Cmd );
+        ///
+        ///-- switch to DB
+        ///SET @V_Cmd = &apos;
+        ///	USE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
+        ///&apos; ;
+        ///EXEC ( @V_Cmd );
+        ///
+        ///-- create two tables
+        ///CREATE TABLE [dbo].[TBL_FirstTable] (
+        ///    [C_ID] INT  [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string SqlProcedures_ChangeData {
+        public static string SetEmptyDB {
             get {
-                return ResourceManager.GetString("SqlProcedures_ChangeData", resourceCulture);
+                return ResourceManager.GetString("SetEmptyDB", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DECLARE @V_MainName SYSNAME = &apos;{0}&apos;;
+        ///   Looks up a localized string similar to 
         ///DECLARE @V_Cmd NVARCHAR(max);
-        ///SET ANSI_NULLS ON
-        ///SET QUOTED_IDENTIFIER ON
+        ///SET ANSI_NULLS ON;
+        ///SET QUOTED_IDENTIFIER ON;
+        ///SET NOCOUNT ON; 
         ///
-        ///DECLARE @V_LoginName SYSNAME = &apos;L_&apos; + @V_MainName;
-        ///DECLARE @V_SchemaName SYSNAME = &apos;S_&apos; + @V_MainName;
-        ///DECLARE @V_UserName SYSNAME = &apos;U_&apos; + @V_MainName;
-        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName;
-        ///DECLARE @V_ServiceName SYSNAME = &apos;Service&apos; + @V_MainName;
-        ///DECLARE @V_TableName SYSNAME = &apos;TBL_Subscribers&apos; ;
-        ///
-        ///DECLARE @V_SubscriberString VARCHAR(max) = &apos;{1}&apos;;
-        ///DECLARE @V_SubscriptionH [rest of string was truncated]&quot;;.
+        ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
+        ///DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
+        ///DECLARE @V_LoginName SYSNAME = &apos;{2}&apos; ;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;{3}&apos; ;
+        ///DECLARE @V_UserName SYSNAME = &apos;{4}&apos; ;
+        ///DECLARE @V_QueueName SYSNAME = &apos;{5}&apos; ;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;{6}&apos; ;
+        ///DECLARE @V_SubscribersTableName SYSNAME = &apos;{7}&apos; ;
+        ///DECLARE @V_ParametersTypeName SYSNAME = &apos;TYPE_ParametersType&apos;;
+        ///DECLARE @V_InstallP [rest of string was truncated]&quot;;.
         /// </summary>
-        public static string SqlProcedures_InstallSubscription {
+        public static string SetSubscription_Test {
             get {
-                return ResourceManager.GetString("SqlProcedures_InstallSubscription", resourceCulture);
+                return ResourceManager.GetString("SetSubscription_Test", resourceCulture);
             }
         }
     }

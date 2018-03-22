@@ -11,16 +11,16 @@ namespace DBConnection
 {
     public class Subscription : IEquatable<Subscription>
     {
-        public string AppName;
+        public string MainServiceName;
         public string SubscriberString;
         public string ProcedureSchemaName;
         public string ProcedureName;
         public SqlParameterCollection ProcedureParameters;
         public int ValidFor;
 
-        public Subscription(string appName="", string subscriberString="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters=null, int validFor= 432000)
+        public Subscription(string mainServiceName = "", string subscriberString="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters=null, int validFor= 432000)
         {
-            AppName = appName;
+            MainServiceName = mainServiceName;
             SubscriberString = subscriberString;
             ProcedureSchemaName = procedureSchemaName;
             ProcedureName = procedureName;
@@ -30,7 +30,7 @@ namespace DBConnection
 
         public string GetHashText()
         {
-            string hash = AppName + ProcedureSchemaName + ProcedureName;
+            string hash = MainServiceName + ProcedureSchemaName + ProcedureName;
             foreach (SqlParameter sqlParameter in ProcedureParameters)
             {
                 hash = hash + sqlParameter.ParameterName + sqlParameter.SqlDbType.GetName() + sqlParameter.Value.ToString();

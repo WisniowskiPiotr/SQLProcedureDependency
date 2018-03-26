@@ -19,7 +19,9 @@ namespace DBConnectionTests
             SetDBState.SetEmptyDB(CommonTestsValues.DefaultTestDBName);
             AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
 
-            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(Resources.AdminInstall_Test, false,
+            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
+                Resources.AdminInstall_Test,
+                SetDBState.AccesType.StandardUser,
                 CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginName,
@@ -41,7 +43,9 @@ namespace DBConnectionTests
             SetDBState.SetAdminInstalledDB(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
             AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
 
-            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(Resources.AdminInstall_Test, false,
+            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
+                Resources.AdminInstall_Test,
+                SetDBState.AccesType.StandardUser,
                 CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginName,
@@ -63,7 +67,9 @@ namespace DBConnectionTests
             SetDBState.SetEmptyDB(CommonTestsValues.DefaultTestDBName);
             AdminDependencyDBInstance.AdminUnInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName);
 
-            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(Resources.AdminUnInstall_Test, true,
+            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
+                Resources.AdminUnInstall_Test, 
+                SetDBState.AccesType.Admin,
                 CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginName,
@@ -85,7 +91,9 @@ namespace DBConnectionTests
             SetDBState.SetAdminInstalledDB(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
             AdminDependencyDBInstance.AdminUnInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName);
 
-            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(Resources.AdminUnInstall_Test, true,
+            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
+                Resources.AdminUnInstall_Test, 
+                SetDBState.AccesType.Admin,
                 CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginName,

@@ -19,7 +19,8 @@ namespace DBConnectionTests
         public static string SubscribersTableName = "TBL_SubscribersTable";
         public static string QueryName = "Q_"+ MainServiceName;
         public static string ServiceName = "S_" + MainServiceName;
-        public static string AdminConnectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=MASTER;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        public static string AdminMasterConnectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=MASTER;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        public static string AdminConnectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=" + DefaultTestDBName + ";Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
         public static string ServiceConnectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=" + DefaultTestDBName + ";UID="+ LoginName + ";PWD="+ LoginPass + ";Connect Timeout=30;Encrypt=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
         public static string FirstSunscriberName = "subscriber1";
         public static string SecondSunscriberName = "subscriber2";

@@ -69,15 +69,23 @@ namespace DBConnection.Properties {
         ///
         ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
         ///DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
-        ///DECLARE @V_SchemaName SYSNAME = &apos;{2}&apos; ;
+        ///DECLARE @V_ObservedSchemaName SYSNAME = &apos;{2}&apos; ;
+        ///
+        ///-- switch to DB
+        ///USE [{0}];
         ///
         ///DECLARE @V_UserName SYSNAME = @V_MainName;
         ///
+        ///-- switch to DB
         ///SET @V_Cmd = &apos;
-        ///	GRANT ALTER ON SCHEMA::&apos; + QUOTENAME( @V_SchemaName ) + &apos; TO &apos; + QUOTENAME(@V_UserName)  + &apos;;
-        ///	GRANT SELECT ON SCHEMA::&apos; + QUOTENAME( @V_SchemaName ) + &apos; TO &apos; + QUOTENAME(@V_UserName)  + &apos;;
-        ///&apos;
-        ///EXEC( @V_Cmd );.
+        ///	USE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
+        ///&apos; ;
+        ///EXEC ( @V_Cmd );
+        ///
+        ///-- grant
+        ///SET @V_Cmd = &apos;
+        ///	GRANT ALTER ON SCHEMA::&apos; + QUOTENAME( @V_ObservedSchemaName ) + &apos; TO &apos; + QUOTENAME(@V_UserName)  + &apos;;
+        /// [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminAddObservedShema {
             get {
@@ -98,10 +106,12 @@ namespace DBConnection.Properties {
         ///DECLARE @V_ReceiveSubscriptionProcedureBody NVARCHAR(max) = &apos;{4}&apos;;
         ///DECLARE @V_UninstallSubscriptionProcedureBody NVARCHAR(max) = &apos;{5}&apos;;
         ///
+        ///-- switch to DB
+        ///USE [{0}];
+        ///
         ///-- test requirements 
         ///DECLARE @V_CompatibilityLvl int = 0 ;
-        ///DECLARE @V_IsBrokerEnabled bit = 0 ;
-        ///SEL [rest of string was truncated]&quot;;.
+        ///DECLARE @V [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminInstall {
             get {
@@ -117,15 +127,22 @@ namespace DBConnection.Properties {
         ///
         ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
         ///DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
-        ///DECLARE @V_SchemaName SYSNAME = &apos;{2}&apos; ;
+        ///DECLARE @V_ObservedSchemaName SYSNAME = &apos;{2}&apos; ;
+        ///
+        ///-- switch to DB
+        ///USE [{0}];
         ///
         ///DECLARE @V_UserName SYSNAME = @V_MainName;
         ///
+        ///-- switch to DB
         ///SET @V_Cmd = &apos;
-        ///	REVOKE ALTER ON SCHEMA::&apos; + QUOTENAME( @V_SchemaName ) + &apos; TO &apos; + QUOTENAME(@V_UserName)  + &apos;;
-        ///	REVOKE SELECT ON SCHEMA::&apos; + QUOTENAME( @V_SchemaName ) + &apos; TO &apos; + QUOTENAME(@V_UserName)  + &apos;;
-        ///&apos;
-        ///EXEC( @V_Cmd );.
+        ///	USE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
+        ///&apos; ;
+        ///EXEC ( @V_Cmd );
+        ///
+        ///-- revoke
+        ///SET @V_Cmd = &apos;
+        ///	REVOKE ALTER ON SCHEMA::&apos; + QUOTENAME( @V_ObservedSchemaName ) + &apos; TO &apos; + QUOTENAME(@V_UserName)  + &apos;; [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminRemoveObservedShema {
             get {
@@ -141,18 +158,13 @@ namespace DBConnection.Properties {
         ///
         ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
         ///DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
-        ///DECLARE @V_Password NVARCHAR(max) = &apos;{2}&apos; ;
-        ///DECLARE @V_InstallSubscriptionProcedureBody NVARCHAR(max) = &apos;{3}&apos;;
-        ///DECLARE @V_ReceiveSubscriptionProcedureBody NVARCHAR(max) = &apos;{4}&apos;;
-        ///DECLARE @V_UninstallSubscriptionProcedureBody NVARCHAR(max) = &apos;{5}&apos;;
-        ///
-        ///-- switch to DB
-        ///SET @V_Cmd = &apos;
-        ///	USE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
-        ///&apos; ;
-        ///EXEC ( @V_Cmd );
-        ///
-        ///-- dr [rest of string was truncated]&quot;;.
+        ///DECLARE @V_LoginName SYSNAME = @V_MainName ;
+        ///DECLARE @V_SchemaName SYSNAME = @V_MainName ;
+        ///DECLARE @V_UserName SYSNAME = @V_MainName ;
+        ///DECLARE @V_QueueName SYSNAME = &apos;Q_&apos; + @V_MainName ;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;S_&apos; + @V_MainName ;
+        ///DECLARE @V_SubscribersTableName SYSNAME = &apos;TBL_SubscribersTable&apos; ;
+        ///DECLARE @V_ParametersTypeName SYSNAME = &apos;T [rest of string was truncated]&quot;;.
         /// </summary>
         public static string AdminUninstall {
             get {
@@ -161,7 +173,7 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to CREATE PROCEDURE [{3}].[P_InstallSubscription]
+        ///   Looks up a localized string similar to CREATE PROCEDURE [&lt;3&gt;].[P_InstallSubscription]
         ///	@V_SubscriberString NVARCHAR(200),
         ///	@V_SubscriptionHash INT,
         ///	@V_ProcedureSchemaName SYSNAME,
@@ -176,8 +188,8 @@ namespace DBConnection.Properties {
         ///	SET QUOTED_IDENTIFIER ON;
         ///	SET NOCOUNT ON; 
         ///
-        ///	DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
-        ///	DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
+        ///	DECLARE @V_DBName SYSNAME = &apos;&lt;0&gt;&apos; ;
+        ///	DECLARE @V_MainName SYSNAME = &apos;&lt;1&gt;&apos; ;
         ///	DECLARE  [rest of string was truncated]&quot;;.
         /// </summary>
         public static string P_InstallSubscription {
@@ -187,7 +199,7 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to CREATE PROCEDURE [{3}].[P_ReceiveSubscription]
+        ///   Looks up a localized string similar to CREATE PROCEDURE [&lt;3&gt;].[P_ReceiveSubscription]
         ///	@V_ReceiveTimeout int = 150000 -- After 5 min retry getting message from queue.
         ///AS 
         ///BEGIN
@@ -197,12 +209,12 @@ namespace DBConnection.Properties {
         ///	SET QUOTED_IDENTIFIER ON;
         ///	SET NOCOUNT ON; 
         ///
-        ///	DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
-        ///	DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
-        ///	DECLARE @V_LoginName SYSNAME = &apos;{2}&apos; ;
-        ///	DECLARE @V_SchemaName SYSNAME = &apos;{3}&apos; ;
-        ///	DECLARE @V_UserName SYSNAME = &apos;{4}&apos; ;
-        ///	DECLARE @V_QueueName SYSNAME = &apos;{5}&apos; ;
+        ///	DECLARE @V_DBName SYSNAME = &apos;&lt;0&gt;&apos; ;
+        ///	DECLARE @V_MainName SYSNAME = &apos;&lt;1&gt;&apos; ;
+        ///	DECLARE @V_LoginName SYSNAME = &apos;&lt;2&gt;&apos; ;
+        ///	DECLARE @V_SchemaName SYSNAME = &apos;&lt;3&gt;&apos; ;
+        ///	DECLARE @V_UserName SYSNAME = &apos;&lt;4&gt;&apos; ;
+        ///	DECLARE @V_QueueName SYSNAME = &apos;&lt;5&gt;&apos; ;
         ///	DECLARE @V_ServiceName  [rest of string was truncated]&quot;;.
         /// </summary>
         public static string P_ReceiveSubscription {
@@ -212,7 +224,7 @@ namespace DBConnection.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to CREATE PROCEDURE [{3}].[P_UninstallSubscription]
+        ///   Looks up a localized string similar to CREATE PROCEDURE [&lt;3&gt;].[P_UninstallSubscription]
         ///	@V_SubscriberString NVARCHAR(200) = null,
         ///	@V_SubscriptionHash INT = null,
         ///	@V_ProcedureSchemaName SYSNAME = null,
@@ -227,7 +239,7 @@ namespace DBConnection.Properties {
         ///	SET QUOTED_IDENTIFIER ON;
         ///	SET NOCOUNT ON; 
         ///
-        ///	DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
+        ///	DECLARE @V_DBName SYSNAME = &apos;&lt;0&gt;&apos; ;
         ///	DECLARE @V_MainName  [rest of string was truncated]&quot;;.
         /// </summary>
         public static string P_UninstallSubscription {

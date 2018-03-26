@@ -73,7 +73,7 @@ namespace DBConnection
             {
                 string paramName = sqlParam.ParameterName;
                 string paramType = sqlParam.SqlDbType.GetName();
-                string paramValue = sqlParam.Value.ToString();
+                string paramValue = GetSqlParameterStringValue(sqlParam.Value, sqlParam.SqlDbType);
                 SqlDataRecord sqlDataRecord = new SqlDataRecord(new[] { pName, pType, pValue });
                 sqlDataRecord.SetString(0, paramName);
                 sqlDataRecord.SetString(1, paramType);
@@ -82,6 +82,62 @@ namespace DBConnection
             }
 
             return procedureParameters;
+        }
+
+        private static string GetSqlParameterStringValue(object paramValue, SqlDbType sqlDbType)
+        {
+            switch (sqlDbType)
+            {
+                case SqlDbType.Bit:
+                    bool value;
+                    if (!Boolean.TryParse(paramValue.ToString(), out value))
+                    {
+                        throw new ArgumentException( paramValue.ToString() + " is not boolean. ");
+                    }
+                    return value ? "1" : "0" ;
+                case SqlDbType.Char:
+                    return "'" + paramValue.ToString().Replace("'","") + "'";
+                case SqlDbType.Date:
+                    return "'" + paramValue.ToString().Replace("'", "") + "'";
+                case SqlDbType.DateTime:
+                    return "'" + paramValue.ToString().Replace("'", "") + "'";
+                case SqlDbType.DateTime2:
+                    return "'" + paramValue.ToString().Replace("'", "") + "'";
+                case SqlDbType.DateTimeOffset:
+                    return "'" + paramValue.ToString().Replace("'", "") + "'";
+                case SqlDbType.Image:
+                    throw new ArgumentException(" Binary types ( in Your case SqlDbType.Image ) as parameter types in stored procedures are not supported. Consider changing Your procedure not to accept this parameter type. ");
+                case SqlDbType.NChar:
+                    return "'" + paramValue.ToString().Replace("'", "''") + "'";
+                case SqlDbType.NText:
+                    return "'" + paramValue.ToString().Replace("'", "''") + "'";
+                case SqlDbType.NVarChar:
+                    return "'" + paramValue.ToString().Replace("'", "''") + "'";
+                case SqlDbType.SmallDateTime:
+                    return "'" + paramValue.ToString().Replace("'", "") + "'";
+                case SqlDbType.Structured:
+                    throw new ArgumentException(" Table types as parameter types in stored procedures are not supported. Consider changing Your procedure not to accept this parameter type. ");
+                case SqlDbType.Text:
+                    return "'" + paramValue.ToString().Replace("'", "''") + "'";
+                case SqlDbType.Time:
+                    return "'" + paramValue.ToString().Replace("'", "") + "'";
+                case SqlDbType.Timestamp:
+                    throw new ArgumentException(" Binary types ( in Your case SqlDbType.Timestamp ) as parameter types in stored procedures are not supported. Consider changing Your procedure not to accept this parameter type. ");
+                case SqlDbType.Udt:
+                    throw new ArgumentException(" User defined types as parameter types in stored procedures are not supported. Consider changing Your procedure not to accept this parameter type. ");
+                case SqlDbType.UniqueIdentifier:
+                    return "{ GUID '" + paramValue.ToString().Replace("'", "") + "'}";
+                case SqlDbType.VarBinary:
+                    throw new ArgumentException(" Binary types ( in Your case SqlDbType.VarBinary ) as parameter types in stored procedures are not supported. Consider changing Your procedure not to accept this parameter type. ");
+                case SqlDbType.VarChar:
+                    return "'" + paramValue.ToString().Replace("'", "''") + "'";
+                case SqlDbType.Variant:
+                    throw new ArgumentException(" Variant types as parameter types in stored procedures are not supported. Consider changing Your procedure not to accept this parameter type. ");
+                case SqlDbType.Xml:
+                    return "'" + paramValue.ToString().Replace("'", "''") + "'";
+                default:
+                    return paramValue.ToString().Replace("'", "''");
+            }
         }
     }
 }

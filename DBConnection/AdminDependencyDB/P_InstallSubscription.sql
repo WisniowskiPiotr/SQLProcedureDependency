@@ -54,7 +54,7 @@ BEGIN
 			FOR XML PATH(''))
 		,'') ;
 	IF ( @V_ProcedureParametersDeclaration IS NOT NULL )
-		SET @V_ProcedureParametersDeclaration = SUBSTRING (@V_ProcedureParametersDeclaration , 0, LEN(@V_ProcedureParametersDeclaration) -2 );
+		SET @V_ProcedureParametersDeclaration = SUBSTRING (@V_ProcedureParametersDeclaration , 0, LEN(@V_ProcedureParametersDeclaration) -1 );
 
 
 	DECLARE @V_ProcedureParametersXlm NVARCHAR(max) ;
@@ -213,84 +213,112 @@ BEGIN
 					AS 
 					BEGIN
 						SET NOCOUNT ON; 
+						SET XACT_ABORT OFF;
 
 						IF( GETDATE() > ''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''')
 							RETURN ;
 
 						DECLARE @V_Message NVARCHAR(MAX) ;
-						DECLARE @V_MessageInserted NVARCHAR(MAX) ;
 						DECLARE @V_MessageParameters NVARCHAR(MAX) ; 
+						DECLARE @V_MessageInserted NVARCHAR(MAX) ;
 						DECLARE @V_MessageDeleted NVARCHAR(MAX) ;
+						DECLARE @V_MessageError NVARCHAR(MAX) ;
 						DECLARE @V_Retval NVARCHAR(MAX) ;
 						DECLARE @V_Cmd NVARCHAR(MAX) ;
+						
+						DECLARE @V_TransactionName NVARCHAR(30) = ''TranSave_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ''' ;
+
+						BEGIN TRY
+							SAVE TRANSACTION @V_TransactionName ;  
 					
-						' + @V_ResultTableDefinition + '
+							' + @V_ResultTableDefinition + '
 									
-						-- inserted rows
-						IF EXISTS (
-							SELECT * 
-								FROM INSERTED
-						)
-							BEGIN
-							
-								DECLARE @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
-								INSERT INTO @TBL_INSERTED
+							-- inserted rows
+							IF EXISTS (
 								SELECT * 
-								FROM INSERTED
+									FROM INSERTED
+							)
+								BEGIN
 							
-								SET @V_Cmd = 
-									''' + REPLACE( 
-											REPLACE( 
-												REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_INSERTED') 
-											, @V_ReferencedNonQuotedTable , '@TBL_INSERTED') 
-										, '''', '''''' ) + ''' ;
+									DECLARE @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
+									INSERT INTO @TBL_INSERTED
+									SELECT * 
+									FROM INSERTED
+							
+									SET @V_Cmd = 
+										''' + REPLACE( 'DECLARE ' + @V_ProcedureParametersDeclaration , '''', '''''' ) + ''' +
+										''' + REPLACE( 
+												REPLACE( 
+													REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_INSERTED') 
+												, @V_ReferencedNonQuotedTable , '@TBL_INSERTED') 
+											, '''', '''''' ) + ''' ;
 
 
-								INSERT INTO @TBL_ResultTable
-								EXEC sp_executesql @V_Cmd, N'' @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_INSERTED = @TBL_INSERTED ;
+									INSERT INTO @TBL_ResultTable
+									EXEC sp_executesql @V_Cmd, N'' @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_INSERTED ;
 							
-								SET @V_MessageInserted = 
-									(SELECT *
-										FROM @TBL_ResultTable
-										FOR XML PATH(''row''), ROOT(''inserted'')) ;
+									SET @V_MessageInserted = 
+										(SELECT *
+											FROM @TBL_ResultTable
+											FOR XML PATH(''row''), ROOT(''inserted'')) ;
 									
-								DELETE FROM @TBL_ResultTable ;
-							END
+									DELETE FROM @TBL_ResultTable ;
+								END
 
-						-- deleted rows
-						IF EXISTS (
-							SELECT * 
-								FROM DELETED
-						)
-							BEGIN
-
-								DECLARE @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
-								INSERT INTO @TBL_DELETED
+							-- deleted rows
+							IF EXISTS (
 								SELECT * 
-								FROM DELETED
+									FROM DELETED
+							)
+								BEGIN
+
+									DECLARE @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
+									INSERT INTO @TBL_DELETED
+									SELECT * 
+									FROM DELETED
 							
-								SET @V_Cmd = 
-									''' + REPLACE( 
-											REPLACE( 
-												REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_DELETED'  ) 
-											, @V_ReferencedNonQuotedTable , '@TBL_DELETED' ) 
-										, '''', '''''' ) + ''' ;
+									SET @V_Cmd = 
+										''' + REPLACE( 'DECLARE ' + @V_ProcedureParametersDeclaration , '''', '''''' ) + ''' +
+										''' + REPLACE( 
+												REPLACE( 
+													REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_DELETED'  ) 
+												, @V_ReferencedNonQuotedTable , '@TBL_DELETED' ) 
+											, '''', '''''' ) + ''' ;
 
 
-								INSERT INTO @TBL_ResultTable
-								EXEC sp_executesql @V_Cmd, N'' @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_DELETED = @TBL_DELETED ;
+									INSERT INTO @TBL_ResultTable
+									EXEC sp_executesql @V_Cmd, N'' @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_DELETED ;
 							
-								SET @V_MessageDeleted = 
-									(SELECT *
-										FROM @TBL_ResultTable
-										FOR XML PATH(''row''), ROOT(''deleted'')) ;
+									SET @V_MessageDeleted = 
+										(SELECT *
+											FROM @TBL_ResultTable
+											FOR XML PATH(''row''), ROOT(''deleted'')) ;
 
-								DELETE FROM @TBL_ResultTable ;
-							END
+									DELETE FROM @TBL_ResultTable ;
+								END
+
+						END TRY
+						BEGIN CATCH
+						
+							ROLLBACK TRANSACTION @V_TransactionName ; 
+
+							SET @V_MessageError = 
+								(SELECT 
+										ISNULL(ERROR_NUMBER(),'''') AS ErrorNumber  
+										,ISNULL(ERROR_SEVERITY(),'''') AS ErrorSeverity  
+										,ISNULL(ERROR_STATE(),'''')  AS ErrorState  
+										,ISNULL(ERROR_PROCEDURE(),'''') AS ErrorProcedure  
+										,ISNULL(ERROR_LINE(),'''')  AS ErrorLine  
+										,ISNULL(ERROR_MESSAGE(),'''')  AS ErrorMessage  
+									FOR XML PATH(''error'')
+								) ;
+
+						END CATCH
 
 						-- send message
 						IF @V_MessageInserted IS NOT NULL 
 							OR @V_MessageDeleted IS NOT NULL
+							OR @V_MessageError IS NOT NULL
 							BEGIN
 								DECLARE @V_SubscriberString NVARCHAR(200) ;
 								DECLARE CU_SubscribersCursor CURSOR FOR
@@ -310,9 +338,11 @@ BEGIN
 										SET @V_Message = ''<notification subscriberstring="'' + @V_SubscriberString + ''">''
 										SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''
 										IF @V_MessageInserted IS NOT NULL 
-											SET @V_Message = @V_Message + @V_MessageInserted
+											SET @V_Message = @V_Message + @V_MessageInserted ;
 										IF @V_MessageDeleted IS NOT NULL 
-											SET @V_Message = @V_Message + @V_MessageDeleted
+											SET @V_Message = @V_Message + @V_MessageDeleted ;
+										IF @V_MessageError IS NOT NULL  
+											SET @V_Message = @V_Message + @V_MessageError ;
 										SET @V_Message = @V_Message + ''</notification>''
 									
                 						DECLARE @V_ConvHandle UNIQUEIDENTIFIER

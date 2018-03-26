@@ -37,7 +37,9 @@ namespace DBConnectionTests
             Subscription subscription = new Subscription(CommonTestsValues.MainServiceName, CommonTestsValues.FirstSunscriberName, CommonTestsValues.SubscribedProcedureSchema, CommonTestsValues.SubscribedProcedureName, sqlParameters);
             SqlProceduresInstance.InstallSubscription(subscription);
 
-            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(Resources.SetSubscription_Test, false,
+            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
+                Resources.SetSubscription_Test,
+                SetDBState.AccesType.StandardUser,
                 CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginName,
@@ -48,6 +50,35 @@ namespace DBConnectionTests
                 CommonTestsValues.SubscribersTableName,
                 CommonTestsValues.FirstSunscriberName);
             if (testResult.Count != 1 && !string.IsNullOrWhiteSpace(testResult[0].Item1))
+            {
+                Assert.Fail(testResult[0].Item1);
+            }
+        }
+
+        [TestMethod]
+        public void ReceiveSubscription()
+        {
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 20);
+            SetDBState.SetSingleSubscriptionInstalledDB(
+                CommonTestsValues.DefaultTestDBName, 
+                CommonTestsValues.MainServiceName, 
+                CommonTestsValues.LoginPass, 
+                CommonTestsValues.FirstSunscriberName,
+                sqlParameters);
+
+            SqlCommand dataChangeCommand = new SqlCommand("dbo.P_TestProcedure");
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, DateTime.Now.Hour ));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, DateTime.Now.Minute));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, true));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, false));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, false));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, false));
+            serviceAccessDBAdmin.SQLRunNonQueryProcedure(dataChangeCommand, 30);
+
+
+            SqlCommand dataReceiveCommand = new SqlCommand(CommonTestsValues.MainServiceName + ".[P_ReceiveSubscription]");
+            List<Tuple<string>> testResult = serviceAccessDB.SQLRunQueryProcedure<Tuple<string>>(dataReceiveCommand, 20);
+            if (testResult.Count < 1 || string.IsNullOrWhiteSpace(testResult[0].Item1))
             {
                 Assert.Fail(testResult[0].Item1);
             }

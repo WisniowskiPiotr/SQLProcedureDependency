@@ -11,10 +11,17 @@ namespace DBConnectionTests
     {
         private static AccessDB serviceAccessDB = new AccessDB(CommonTestsValues.ServiceConnectionString);
         private static AccessDB serviceAccessDBAdmin = new AccessDB(CommonTestsValues.AdminConnectionString);
+        private static AccessDB serviceAccessDBAdminMaster = new AccessDB(CommonTestsValues.AdminMasterConnectionString);
+
+        public enum AccesType {
+            StandardUser,
+            Admin,
+            AdminAtMasterDB
+        }
 
         public static void SetEmptyDB(string DBName)
         {
-            RunFile(Resources.SetEmptyDB, true, DBName);
+            RunFile(Resources.SetEmptyDB, AccesType.AdminAtMasterDB, DBName);
         }
 
         public static void SetAdminInstalledDB(string DBName, string mainServiceName, string password)
@@ -40,24 +47,37 @@ namespace DBConnectionTests
             sqlProcedures.InstallSubscription(subscription);
         }
 
-        public static void RunFile(string fileContent, bool asAdmin = true, params string[] replacements)
+        public static void RunFile(string fileContent, AccesType asAdmin = AccesType.StandardUser, params string[] replacements)
         {
             string slqCommandText = string.Format(fileContent, replacements);
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
-            if(asAdmin)
-                serviceAccessDBAdmin.SQLRunNonQueryProcedure(sqlCommand);
-            else
-                serviceAccessDB.SQLRunNonQueryProcedure(sqlCommand);
+            switch (asAdmin)
+            {
+                case AccesType.Admin:
+                    serviceAccessDBAdmin.SQLRunNonQueryProcedure(sqlCommand);
+                    break;
+                case AccesType.AdminAtMasterDB:
+                    serviceAccessDBAdminMaster.SQLRunNonQueryProcedure(sqlCommand);
+                    break;
+                default:
+                    serviceAccessDB.SQLRunNonQueryProcedure(sqlCommand);
+                    break;
+            }
         }
 
-        public static List<T> RunFile<T>(string fileContent, bool asAdmin = true, params string[] replacements)
+        public static List<T> RunFile<T>(string fileContent, AccesType asAdmin = AccesType.StandardUser, params string[] replacements)
         {
             string slqCommandText = string.Format(fileContent, replacements);
             SqlCommand sqlCommand = new SqlCommand(slqCommandText);
-            if (asAdmin)
-                return serviceAccessDBAdmin.SQLRunQueryProcedure<T>(sqlCommand);
-            else
-                return serviceAccessDB.SQLRunQueryProcedure<T>(sqlCommand);
+            switch (asAdmin)
+            {
+                case AccesType.Admin:
+                    return serviceAccessDBAdmin.SQLRunQueryProcedure<T>(sqlCommand);
+                case AccesType.AdminAtMasterDB:
+                    return serviceAccessDBAdminMaster.SQLRunQueryProcedure<T>(sqlCommand);
+                default:
+                    return serviceAccessDB.SQLRunQueryProcedure<T>(sqlCommand);
+            }
         }
 
     }

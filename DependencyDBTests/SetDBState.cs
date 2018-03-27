@@ -31,18 +31,33 @@ namespace DBConnectionTests
             adminDependencyDB.AdminInstall(DBName, mainServiceName, password);
         }
 
-        public static void SetSingleSubscriptionInstalledDB(string DBName, string mainServiceName, string password, string subscriber,SqlParameterCollection testProcedureParameters)
+        public static void SetSingleSubscriptionInstalledDB(string DBName, string mainServiceName, string password, string subscriber, string procedureName, SqlParameterCollection testProcedureParameters)
         {
             SetAdminInstalledDB(DBName, mainServiceName, password);
-            Subscription subscription = new Subscription(mainServiceName, subscriber, CommonTestsValues.SubscribedProcedureSchema, CommonTestsValues.SubscribedProcedureName, testProcedureParameters);
+            Subscription subscription = new Subscription(
+                mainServiceName, 
+                subscriber, 
+                CommonTestsValues.SubscribedProcedureSchema, 
+                procedureName, 
+                testProcedureParameters);
             SqlProcedures sqlProcedures = new SqlProcedures(serviceAccessDB);
             sqlProcedures.InstallSubscription(subscription);
         }
 
-        public static void SetTwoSubscriptionInstalledDB(string DBName, string mainServiceName, string password, string firstSubscriber, SqlParameterCollection firstTestProcedureParameters, string secondSubscriber, SqlParameterCollection secondTestProcedureParameters)
+        public static void SetTwoSubscriptionInstalledDB(string DBName, string mainServiceName, string password, string firstSubscriber, string firstProcedureName, SqlParameterCollection firstTestProcedureParameters, string secondSubscriber, string secondProcedureName, SqlParameterCollection secondTestProcedureParameters)
         {
-            SetSingleSubscriptionInstalledDB( DBName,  mainServiceName,  password,  firstSubscriber,  firstTestProcedureParameters);
-            Subscription subscription = new Subscription(mainServiceName, secondSubscriber, CommonTestsValues.SubscribedProcedureSchema, CommonTestsValues.SubscribedProcedureName, secondTestProcedureParameters);
+            SetSingleSubscriptionInstalledDB( 
+                DBName, 
+                mainServiceName,  
+                password,  
+                firstSubscriber,
+                firstProcedureName,
+                firstTestProcedureParameters);
+            Subscription subscription = new Subscription(
+                mainServiceName, secondSubscriber, 
+                CommonTestsValues.SubscribedProcedureSchema,
+                secondProcedureName, 
+                secondTestProcedureParameters);
             SqlProcedures sqlProcedures = new SqlProcedures(serviceAccessDB);
             sqlProcedures.InstallSubscription(subscription);
         }

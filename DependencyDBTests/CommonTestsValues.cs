@@ -15,7 +15,6 @@ namespace DBConnectionTests
         public static string SchemaName = MainServiceName;
         public static string Username = MainServiceName;
         public static string SubscribedProcedureSchema = "dbo";
-        public static string SubscribedProcedureName = "P_TestProcedure";
         public static string SubscribersTableName = "TBL_SubscribersTable";
         public static string QueryName = "Q_"+ MainServiceName;
         public static string ServiceName = "S_" + MainServiceName;

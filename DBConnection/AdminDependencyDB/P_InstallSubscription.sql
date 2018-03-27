@@ -21,6 +21,8 @@ BEGIN
 	DECLARE @V_QueueName SYSNAME = '<5>' ;
 	DECLARE @V_ServiceName SYSNAME = '<6>' ;
 	DECLARE @V_SubscribersTableName SYSNAME = '<7>' ;
+
+	DECLARE @V_ExceptionMessage NVARCHAR(max);
 	
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
 	SET @V_ProcedureParametersList = ISNULL(
@@ -35,6 +37,24 @@ BEGIN
 		,'') ;
 	SET @V_ProcedureParametersList = SUBSTRING( @V_ProcedureParametersList , 2 , LEN( @V_ProcedureParametersList ))
 	
+	IF EXISTS(
+		SELECT name
+		FROM sys.parameters AS SysParameters
+		WHERE SysParameters.name not in (
+				SELECT 
+					CASE WHEN SUBSTRING(PName,1,1) !='@'
+					THEN '@'
+					ELSE ''
+					END + PName AS name
+				FROM @TBL_ProcedureParameters AS ProcedureParameters
+			)
+			AND SysParameters.object_id = object_id( @V_ProcedureSchemaName + '.' +@V_ProcedureName )
+	)
+		BEGIN;
+			SET @V_ExceptionMessage  = 'All procedure parameters must be declared in @TBL_ProcedureParameters. This includes default value parameters. ';
+			THROW 99994, @V_ExceptionMessage , 1;
+		END
+
 	DECLARE @V_ProcedureParametersDeclaration NVARCHAR(max) ;
 	SET @V_ProcedureParametersDeclaration = ISNULL(
 			(SELECT CASE 
@@ -53,7 +73,8 @@ BEGIN
 			FROM @TBL_ProcedureParameters 
 			FOR XML PATH(''))
 		,'') ;
-	IF ( @V_ProcedureParametersDeclaration IS NOT NULL )
+	IF ( @V_ProcedureParametersDeclaration IS NOT NULL
+		AND LEN(@V_ProcedureParametersDeclaration) > 2 )
 		SET @V_ProcedureParametersDeclaration = SUBSTRING (@V_ProcedureParametersDeclaration , 0, LEN(@V_ProcedureParametersDeclaration) -1 );
 
 
@@ -68,7 +89,6 @@ BEGIN
 		,'') + '</procedure>' + '</schema>' ;
 
 	-- get procedure text
-	DECLARE @V_ExceptionMessage NVARCHAR(max);
 	DECLARE @V_ProcedureText NVARCHAR(max) ;
 	SELECT @V_ProcedureText = sql_modules.definition
 		FROM sys.sql_modules AS sql_modules
@@ -304,12 +324,12 @@ BEGIN
 
 							SET @V_MessageError = 
 								(SELECT 
-										ISNULL(ERROR_NUMBER(),'''') AS ErrorNumber  
-										,ISNULL(ERROR_SEVERITY(),'''') AS ErrorSeverity  
-										,ISNULL(ERROR_STATE(),'''')  AS ErrorState  
-										,ISNULL(ERROR_PROCEDURE(),'''') AS ErrorProcedure  
-										,ISNULL(ERROR_LINE(),'''')  AS ErrorLine  
-										,ISNULL(ERROR_MESSAGE(),'''')  AS ErrorMessage  
+										ISNULL(ERROR_NUMBER(),'''') AS [number]  
+										,ISNULL(ERROR_SEVERITY(),'''') AS [severity]  
+										,ISNULL(ERROR_STATE(),'''')  AS [state]  
+										,ISNULL(ERROR_PROCEDURE(),'''') AS [procedure]  
+										,ISNULL(ERROR_LINE(),'''')  AS [linenb]  
+										,ISNULL(ERROR_MESSAGE(),'''')  AS [message]  
 									FOR XML PATH(''error'')
 								) ;
 
@@ -321,8 +341,10 @@ BEGIN
 							OR @V_MessageError IS NOT NULL
 							BEGIN
 								DECLARE @V_SubscriberString NVARCHAR(200) ;
+								DECLARE @V_SubscriberValidTill DATETIME ;
 								DECLARE CU_SubscribersCursor CURSOR FOR
-									SELECT TBL_SubscribersTable.C_SubscriberString
+									SELECT TBL_SubscribersTable.C_SubscriberString,
+										TBL_SubscribersTable.C_ValidTill
 									FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS TBL_SubscribersTable
 									WHERE TBL_SubscribersTable.C_SubscriptionHash = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
 										AND TBL_SubscribersTable.C_ProcedureSchemaName = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''
@@ -332,11 +354,12 @@ BEGIN
 
 								OPEN CU_SubscribersCursor ;
 								FETCH NEXT FROM CU_SubscribersCursor 
-									INTO @V_SubscriberString ;
+									INTO @V_SubscriberString,
+										@V_SubscriberValidTill;
 								WHILE @@FETCH_STATUS = 0 
 									BEGIN
-										SET @V_Message = ''<notification subscriberstring="'' + @V_SubscriberString + ''">''
-										SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''
+										SET @V_Message = ''<notification servicename="' + @V_MainName + '" subscriberstring="'' + @V_SubscriberString + ''" validtill="'' + CONVERT( varchar(24), @V_SubscriberValidTill, 21) + ''">''
+										SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''		
 										IF @V_MessageInserted IS NOT NULL 
 											SET @V_Message = @V_Message + @V_MessageInserted ;
 										IF @V_MessageDeleted IS NOT NULL 
@@ -356,7 +379,8 @@ BEGIN
 											MESSAGE TYPE [DEFAULT] (@V_Message);
 										END CONVERSATION @V_ConvHandle;
 										FETCH NEXT FROM CU_SubscribersCursor 
-											INTO @V_SubscriberString ;
+											INTO @V_SubscriberString,
+												@V_SubscriberValidTill ;
 									END
 								CLOSE CU_SubscribersCursor ;
 								DEALLOCATE CU_SubscribersCursor ;

@@ -34,7 +34,12 @@ namespace DBConnectionTests
             SetDBState.SetAdminInstalledDB(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
 
             SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 20);
-            Subscription subscription = new Subscription(CommonTestsValues.MainServiceName, CommonTestsValues.FirstSunscriberName, CommonTestsValues.SubscribedProcedureSchema, CommonTestsValues.SubscribedProcedureName, sqlParameters);
+            Subscription subscription = new Subscription(
+                CommonTestsValues.MainServiceName, 
+                CommonTestsValues.FirstSunscriberName, 
+                CommonTestsValues.SubscribedProcedureSchema,
+                "P_TestGetProcedure", 
+                sqlParameters);
             SqlProceduresInstance.InstallSubscription(subscription);
 
             List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
@@ -56,31 +61,58 @@ namespace DBConnectionTests
         }
 
         [TestMethod]
-        public void ReceiveSubscription()
+        public void ReceiveErrorSubscription()
         {
-            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 20);
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 10);
             SetDBState.SetSingleSubscriptionInstalledDB(
-                CommonTestsValues.DefaultTestDBName, 
-                CommonTestsValues.MainServiceName, 
-                CommonTestsValues.LoginPass, 
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginPass,
                 CommonTestsValues.FirstSunscriberName,
+                "P_TestSetProcedure",
                 sqlParameters);
 
-            SqlCommand dataChangeCommand = new SqlCommand("dbo.P_TestProcedure");
-            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, DateTime.Now.Hour ));
-            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, DateTime.Now.Minute));
+            SqlCommand dataChangeCommand = new SqlCommand("dbo.P_TestSetProcedure");
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, 10 ));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, 10));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, true));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, false));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, false));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, false));
             serviceAccessDBAdmin.SQLRunNonQueryProcedure(dataChangeCommand, 30);
 
-
-            SqlCommand dataReceiveCommand = new SqlCommand(CommonTestsValues.MainServiceName + ".[P_ReceiveSubscription]");
-            List<Tuple<string>> testResult = serviceAccessDB.SQLRunQueryProcedure<Tuple<string>>(dataReceiveCommand, 20);
-            if (testResult.Count < 1 || string.IsNullOrWhiteSpace(testResult[0].Item1))
+            List<NotificationMessage> testResult= SqlProceduresInstance.ReceiveSubscription(CommonTestsValues.MainServiceName);
+            if (testResult.Count < 1 || string.IsNullOrWhiteSpace(testResult[0].MessageString) || testResult[0].Error==null || testResult[0].Error.ErrorNumber != "10700")
             {
-                Assert.Fail(testResult[0].Item1);
+                Assert.Fail(testResult[0].MessageString);
+            }
+        }
+
+        [TestMethod]
+        public void ReceiveSubscription()
+        {
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 10);
+            SetDBState.SetSingleSubscriptionInstalledDB(
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginPass,
+                CommonTestsValues.FirstSunscriberName,
+                "P_TestGetProcedure",
+                sqlParameters);
+
+            SqlCommand dataChangeCommand = new SqlCommand("dbo.P_TestSetProcedure");
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, 10));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, 10));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, true));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, false));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, false));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, false));
+            serviceAccessDBAdmin.SQLRunNonQueryProcedure(dataChangeCommand, 30);
+
+            List<NotificationMessage> testResult = SqlProceduresInstance.ReceiveSubscription(CommonTestsValues.MainServiceName,15);
+            if (testResult.Count < 1 || string.IsNullOrWhiteSpace(testResult[0].MessageString) || testResult[0].Error != null || testResult[0].Inserted == null)
+            {
+                Assert.Fail(testResult[0].MessageString);
             }
         }
     }

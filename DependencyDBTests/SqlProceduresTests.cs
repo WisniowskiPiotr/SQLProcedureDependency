@@ -60,7 +60,41 @@ namespace DBConnectionTests
                 CommonTestsValues.ServiceName,
                 CommonTestsValues.SubscribersTableName,
                 CommonTestsValues.FirstSunscriberName);
-            if (testResult.Count != 1 && !string.IsNullOrWhiteSpace(testResult[0].Item1))
+            if (testResult.Count != 1 || string.IsNullOrWhiteSpace(testResult[0].Item1) || testResult[0].Item1.Substring(0, 1) != "1")
+            {
+                Assert.Fail(testResult[0].Item1);
+            }
+        }
+
+        [TestMethod]
+        public void SetDoubleSubscription()
+        {
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10);
+            SetDBState.SetTwoSubscriptionInstalledDB(
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginPass,
+                CommonTestsValues.FirstSunscriberName,
+                "P_TestGetProcedure",
+                sqlParameters,
+                CommonTestsValues.SecondSunscriberName,
+                "P_TestGetProcedure",
+                sqlParameters
+                );
+
+            List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
+                Resources.SetSubscription_Test,
+                SetDBState.AccesType.StandardUser,
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginName,
+                CommonTestsValues.SchemaName,
+                CommonTestsValues.Username,
+                CommonTestsValues.QueryName,
+                CommonTestsValues.ServiceName,
+                CommonTestsValues.SubscribersTableName,
+                CommonTestsValues.AnySunscriberName);
+            if (testResult.Count != 1 || string.IsNullOrWhiteSpace(testResult[0].Item1) || testResult[0].Item1.Substring(0, 1) != "2")
             {
                 Assert.Fail(testResult[0].Item1);
             }
@@ -121,5 +155,7 @@ namespace DBConnectionTests
                 Assert.Fail(testResult[0].MessageString);
             }
         }
+
+        
     }
 }

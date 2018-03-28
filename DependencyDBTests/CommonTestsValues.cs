@@ -23,5 +23,6 @@ namespace DBConnectionTests
         public static string ServiceConnectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=" + DefaultTestDBName + ";UID="+ LoginName + ";PWD="+ LoginPass + ";Connect Timeout=30;Encrypt=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
         public static string FirstSunscriberName = "subscriber1";
         public static string SecondSunscriberName = "subscriber2";
+        public static string AnySunscriberName = "subscriber%";
     }
 }

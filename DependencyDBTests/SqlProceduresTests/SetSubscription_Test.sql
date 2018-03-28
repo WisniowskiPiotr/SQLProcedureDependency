@@ -25,21 +25,23 @@ SET @V_Cmd = '
 	DECLARE @V_Message NVARCHAR(max) = '''';
 	DECLARE @V_SubscriptionHash INT;
 	DECLARE @V_TriggerNames NVARCHAR(max);
+	DECLARE @V_SubscribersCount INT;
 
-	IF NOT EXISTS (
-		SELECT [TBL_Subscribers].C_SubscribersTableId
+	SELECT @V_SubscribersCount = COUNT( [TBL_Subscribers].C_SubscribersTableId )
 		FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS [TBL_Subscribers]
-		WHERE C_SubscriberString = ''' + @V_SubscriberName + '''
-	)
+		WHERE C_SubscriberString LIKE ''' + @V_SubscriberName + '''
+
+	IF ( @V_SubscribersCount = 0 )
 		BEGIN
-			SET @V_Message = @V_Message + ''No subscriber found in TBL_Subscribers. '';
+			SET @V_Message = @V_Message + '' No subscriber found in TBL_Subscribers. '';
 		END
 	ELSE
 		BEGIN
+			SET @V_Message = @V_Message + CAST( @V_SubscribersCount AS NVARCHAR(200) ) + '' - Subscriber count. '' ;
 			SELECT @V_SubscriptionHash = [TBL_Subscribers].C_SubscriptionHash,
 				@V_TriggerNames = [TBL_Subscribers].C_TriggerNames
 			FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS [TBL_Subscribers]
-			WHERE C_SubscriberString = ''' + @V_SubscriberName + ''' ;
+			WHERE C_SubscriberString LIKE ''' + @V_SubscriberName + ''' ;
 
 			DECLARE @V_ParametersTypeName SYSNAME;
 			SET @V_ParametersTypeName = ''TYPE_' + @V_MainName + '_dbo_TBL_FirstTable_'' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;

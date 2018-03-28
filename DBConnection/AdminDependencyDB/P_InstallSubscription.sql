@@ -358,7 +358,7 @@ BEGIN
 										@V_SubscriberValidTill;
 								WHILE @@FETCH_STATUS = 0 
 									BEGIN
-										SET @V_Message = ''<notification servicename="' + @V_MainName + '" subscriberstring="'' + @V_SubscriberString + ''" validtill="'' + CONVERT( varchar(24), @V_SubscriberValidTill, 21) + ''">''
+										SET @V_Message = ''<notification type="data" servicename="' + @V_MainName + '" subscriberstring="'' + @V_SubscriberString + ''" validtill="'' + CONVERT( varchar(24), @V_SubscriberValidTill, 21) + ''">''
 										SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''		
 										IF @V_MessageInserted IS NOT NULL 
 											SET @V_Message = @V_Message + @V_MessageInserted ;

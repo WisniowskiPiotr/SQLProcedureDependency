@@ -26,6 +26,7 @@ namespace DBConnection
         public NotificationMessageError Error { get; }
         public NotificationData Inserted { get; }
         public NotificationData Deleted { get; }
+        public NotificationMessageType MessageType { get; } = NotificationMessageType.NotImplementedType;
 
         /// <summary>
         /// Public constructor for creating instance from Message string. Message string should be Xml with proper structure.
@@ -53,6 +54,17 @@ namespace DBConnection
             {
                 Deleted = new NotificationData(Message.Element("notification").Element("deleted"));
             }
+
+            if (Inserted != null)
+                MessageType = NotificationMessageType.InsertedData;
+            if (Deleted != null)
+                MessageType = NotificationMessageType.DeletedData;
+            if (Inserted != null && Deleted != null)
+                MessageType = NotificationMessageType.InsertedAndDeletedData;
+            if (Message.Element("notification").Element("unsubscribed") != null)
+                MessageType = NotificationMessageType.Unsubscribed;
+            if (Error!=null)
+                MessageType = NotificationMessageType.Error;
 
             SqlCommand ProcedureCmd = new SqlCommand(base.ProcedureSchemaName + "." + base.ProcedureName);
             foreach (XElement parameter in Message.Element("notification").Element("schema").Element("procedure").Elements("parameter"))

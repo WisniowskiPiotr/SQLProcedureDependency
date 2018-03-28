@@ -130,4 +130,7 @@
   <data name="SetSubscription_Test" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\SqlProceduresTests\SetSubscription_Test.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
   </data>
+  <data name="UninstallSubscription_Test" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\SqlProceduresTests\UninstallSubscription_Test.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
+  </data>
 </root>

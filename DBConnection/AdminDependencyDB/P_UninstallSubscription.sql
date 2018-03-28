@@ -52,6 +52,7 @@ BEGIN
 		[C_ValidTill] DATETIME NOT NULL,
 		[C_DeleteTrigger] BIT NOT NULL
 	) ;
+
 	DELETE FROM [<3>].[TBL_SubscribersTable]
 	OUTPUT 
 		DELETED.[C_SubscribersTableId] ,
@@ -66,8 +67,8 @@ BEGIN
 		INTO @TBL_SubscribersToBeRemoved
 	WHERE ( TBL_SubscribersTable.C_SubscriberString = ISNULL( @V_SubscriberString, TBL_SubscribersTable.C_SubscriberString)
 		AND  TBL_SubscribersTable.C_SubscriptionHash = ISNULL( @V_SubscriptionHash, TBL_SubscribersTable.C_SubscriptionHash)
-		AND  TBL_SubscribersTable.C_ProcedureSchemaName = ISNULL( @V_ProcedureSchemaName, TBL_SubscribersTable.C_ProcedureSchemaName)
-		AND  TBL_SubscribersTable.C_ProcedureName = ISNULL( @V_ProcedureName, TBL_SubscribersTable.C_ProcedureName)
+		AND  TBL_SubscribersTable.C_ProcedureSchemaName = ISNULL( QUOTENAME( @V_ProcedureSchemaName ), TBL_SubscribersTable.C_ProcedureSchemaName)
+		AND  TBL_SubscribersTable.C_ProcedureName = ISNULL( QUOTENAME( @V_ProcedureName ), TBL_SubscribersTable.C_ProcedureName)
 		AND  TBL_SubscribersTable.C_ProcedureParameters = ISNULL( @V_ProcedureParametersXlm, TBL_SubscribersTable.C_ProcedureParameters)
 		) OR  TBL_SubscribersTable.C_ValidTill < GETDATE() ;
 
@@ -89,35 +90,40 @@ BEGIN
 	DECLARE @V_TriggerNames NVARCHAR(max) ;
 	DECLARE @V_Message NVARCHAR(MAX) ;
 	DECLARE @V_RemoveTriggers BIT = 0 ;
+	DECLARE @V_ValidTill DATETIME ;
 
 	DECLARE CU_SubscribersToBeRemovedCursor CURSOR FOR
 		SELECT TBL_SubscribersToBeRemoved.C_SubscriberString,
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
 			TBL_SubscribersToBeRemoved.C_TriggerNames,
-			TBL_SubscribersToBeRemoved.C_DeleteTrigger
+			TBL_SubscribersToBeRemoved.C_DeleteTrigger,
+			TBL_SubscribersToBeRemoved.C_ValidTill
 		FROM @TBL_SubscribersToBeRemoved AS TBL_SubscribersToBeRemoved
 		GROUP BY TBL_SubscribersToBeRemoved.C_SubscriberString,
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
 			TBL_SubscribersToBeRemoved.C_TriggerNames,
-			TBL_SubscribersToBeRemoved.C_DeleteTrigger;
+			TBL_SubscribersToBeRemoved.C_DeleteTrigger,
+			TBL_SubscribersToBeRemoved.C_ValidTill;
 
 	OPEN CU_SubscribersToBeRemovedCursor ;
 	FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 
 		INTO @V_RemovedSubscriberString, 
 			@V_ProcedureParameters, 
 			@V_TriggerNames,
-			@V_RemoveTriggers ;
+			@V_RemoveTriggers,
+			@V_ValidTill;
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 			-- Notify subscriber
-			SET @V_Message = '<unsubscribed subscriberstring="' + @V_RemovedSubscriberString + '">'
+			SET @V_Message = '<notification servicename="' + @V_MainName + '" subscriberstring="' + @V_RemovedSubscriberString + '" validtill="' + CONVERT( varchar(24), @V_ValidTill, 21)  + '">'
 			SET @V_Message = @V_Message + @V_ProcedureParameters
-			SET @V_Message = @V_Message + '</unsubscribed>'
+			SET @V_Message = @V_Message + '<unsubscribed></unsubscribed>'
+			SET @V_Message = @V_Message + '</notification>'
 
 			DECLARE @V_ConvHandle UNIQUEIDENTIFIER
 			BEGIN DIALOG @V_ConvHandle 
 				FROM SERVICE [<6>]
-				TO SERVICE '[<6>]'
+				TO SERVICE '<6>'
 				ON CONTRACT [DEFAULT] 
 				WITH ENCRYPTION = OFF, 
 				LIFETIME = @V_NotificationValidFor ; 
@@ -201,7 +207,9 @@ BEGIN
 			FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 
 				INTO @V_RemovedSubscriberString, 
 					@V_ProcedureParameters, 
-					@V_TriggerNames ;
+					@V_TriggerNames,
+					@V_RemoveTriggers,
+					@V_ValidTill ;
 		END
 	CLOSE CU_SubscribersToBeRemovedCursor ;
 	DEALLOCATE CU_SubscribersToBeRemovedCursor ;

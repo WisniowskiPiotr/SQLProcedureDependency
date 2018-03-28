@@ -118,26 +118,24 @@ namespace DBConnectionTests.Properties {
         ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos;;
         ///
         ///-- drop DB
-        ///SET @V_Cmd = &apos;
-        ///	DROP DATABASE IF EXISTS &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
-        ///&apos; ;
-        ///EXEC ( @V_Cmd );
+        ///IF( DB_ID( @V_DBName ) IS NOT NULL )
+        ///	BEGIN
+        ///		SET @V_Cmd = &apos;
+        ///			ALTER DATABASE &apos; + QUOTENAME( @V_DBName ) + &apos;
+        ///			SET SINGLE_USER WITH ROLLBACK IMMEDIATE ;
+        ///		&apos; ;
+        ///		EXEC ( @V_Cmd );
+        ///		SET @V_Cmd = &apos;
+        ///			DROP DATABASE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
+        ///		&apos; ;
+        ///		EXEC ( @V_Cmd );
+        ///	END
         ///
         ///-- create DB
         ///SET @V_Cmd = &apos;
         ///	CREATE DATABASE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
         ///&apos; ;
-        ///EXEC ( @V_Cmd );
-        ///
-        ///-- switch to DB
-        ///SET @V_Cmd = &apos;
-        ///	USE &apos; + QUOTENAME( @V_DBName ) + &apos; ; 
-        ///&apos; ;
-        ///EXEC ( @V_Cmd );
-        ///
-        ///-- create two tables
-        ///CREATE TABLE [dbo].[TBL_FirstTable] (
-        ///    [C_ID] INT  [rest of string was truncated]&quot;;.
+        ///EXE [rest of string was truncated]&quot;;.
         /// </summary>
         public static string SetEmptyDB {
             get {
@@ -166,6 +164,30 @@ namespace DBConnectionTests.Properties {
         public static string SetSubscription_Test {
             get {
                 return ResourceManager.GetString("SetSubscription_Test", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 
+        ///DECLARE @V_Cmd NVARCHAR(max);
+        ///SET ANSI_NULLS ON;
+        ///SET QUOTED_IDENTIFIER ON;
+        ///SET NOCOUNT ON; 
+        ///
+        ///DECLARE @V_DBName SYSNAME = &apos;{0}&apos; ;
+        ///DECLARE @V_MainName SYSNAME = &apos;{1}&apos; ;
+        ///DECLARE @V_LoginName SYSNAME = &apos;{2}&apos; ;
+        ///DECLARE @V_SchemaName SYSNAME = &apos;{3}&apos; ;
+        ///DECLARE @V_UserName SYSNAME = &apos;{4}&apos; ;
+        ///DECLARE @V_QueueName SYSNAME = &apos;{5}&apos; ;
+        ///DECLARE @V_ServiceName SYSNAME = &apos;{6}&apos; ;
+        ///DECLARE @V_SubscribersTableName SYSNAME = &apos;{7}&apos; ;
+        ///DECLARE @V_ParametersTypeName SYSNAME = &apos;TYPE_ParametersType&apos;;
+        ///DECLARE @V_InstallP [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string UninstallSubscription_Test {
+            get {
+                return ResourceManager.GetString("UninstallSubscription_Test", resourceCulture);
             }
         }
     }

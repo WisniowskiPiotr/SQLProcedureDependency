@@ -26,6 +26,13 @@ namespace DBConnection
             ProcedureName = procedureName;
             ProcedureParameters = procedureParameters;
             ValidFor = validFor;
+
+            if (ProcedureParameters == null)
+            {
+                SqlCommand cmd = new SqlCommand();
+                cmd.Parameters.Add(AccessDB.CreateSqlParameter("@V_RemoveAllParameters", SqlDbType.Bit, true));
+                ProcedureParameters = cmd.Parameters;
+            }
         }
 
         public string GetHashText()

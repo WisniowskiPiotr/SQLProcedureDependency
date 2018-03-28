@@ -13,6 +13,15 @@ BEGIN
 	SET QUOTED_IDENTIFIER ON;
 	SET NOCOUNT ON; 
 
+	IF( LEN( @V_SubscriberString ) = 0 )
+		SET @V_SubscriberString = null;
+	IF( @V_SubscriptionHash = 0 )
+		SET @V_SubscriptionHash = null;
+	IF( LEN( @V_ProcedureSchemaName ) = 0 )
+		SET @V_ProcedureSchemaName = null;
+	IF( LEN( @V_ProcedureName ) = 0 )
+		SET @V_ProcedureName = null;
+
 	DECLARE @V_DBName SYSNAME = '<0>' ;
 	DECLARE @V_MainName SYSNAME = '<1>' ;
 	DECLARE @V_LoginName SYSNAME = '<2>' ;

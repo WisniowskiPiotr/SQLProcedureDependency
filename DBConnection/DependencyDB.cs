@@ -1,74 +1,73 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.IO;
-using System.Xml.Linq;
-using static DBConnection.Listener;
 
 namespace DBConnection
 {
-    public static class DependencyDB
+    public static class DependencyDB 
     {
-        
+        public delegate void HandleMessage(string subscriberString, NotificationMessage message);
+
         private static ConcurrentDictionary<string,Listener> Listeners = new ConcurrentDictionary<string, Listener>();
-        public static Listener StartListener(string connectionString)
+        public static void StartListener(string appName, string connectionString, HandleMessage messageHandler )
         {
-            Listener listener = Listeners[connectionString];
-            if (listener == null)
-            {
-                listener = new Listener(connectionString);
-                //Listeners.Add(listener);
-            }
+            string key = appName + connectionString;
+            Listener listener = Listeners.AddOrUpdate(
+                    key,
+                    (foundkey) => new Listener(appName, connectionString, messageHandler),
+                    (foundkey, oldListener) => { oldListener.MessageHandler = messageHandler; return oldListener; }
+                    );
             if (!listener.IsListening())
             {
                 listener.Start();
             }
-            
-            return listener;
         }
-        public static void StopListener(string connectionString)
+        public static void StopListener(string appName, string connectionString)
         {
-            //Listener existingListener = Listeners.Find(x => x.ConnectionString == connectionString);
-            //lock (Listeners)
-            //{
-            //    if (existingListener != null)
-            //    {
-            //        if (existingListener.IsListening())
-            //        {
-            //            existingListener.Stop();
-            //        }
-            //        Listeners.Remove(existingListener);
-            //    }
-            //}
+            string key = appName + connectionString;
+            Listener listener;
+            if (Listeners.TryRemove(key, out listener))
+            {
+                listener.Stop();
+            }
         }
-        public static void Subscribe(string connectionString, SqlCommand procedureCmd, string subscriberName, HandleNotification onNotification, DateTime validTill)
+        public static void Subscribe(string appName, string connectionString, string subscriberName, string procedureSchemaName, string procedureName, SqlParameterCollection procedureParameters, DateTime validTill)
         {
-            //Subscription subscription = new Subscription(connectionString, procedureCmd, subscriberName, onNotification, validTill);
-            //Listener listener = Listeners.Find(x => x.ConnectionString == connectionString);
-            //if (listener == null)
-            //{
-            //    listener = StartListener(connectionString);
-            //}
-            //listener.AddSubscription(subscription);
+            string key = appName + connectionString;
+            Listener listener = Listeners[key];
+            if (listener != null)
+            {
+                Subscription subscription = new Subscription(
+                    appName,
+                    subscriberName,
+                    procedureSchemaName,
+                    procedureName,
+                    procedureParameters,
+                    Convert.ToInt32((validTill - DateTime.Now).TotalSeconds)
+                    );
+                listener.SqlProcedures.InstallSubscription(subscription);
+            }
+            else
+                throw new NullReferenceException("No DependencyDB.StartListener() invoked for current appName and connectionString combination.");
         }
-        public static void UnSubscribe(string connectionString, string subscriberName, SqlCommand procedureCmd)
+        public static void UnSubscribe(string appName, string connectionString, string subscriberName, string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters = null, int notificationValidFor = 86400)
         {
-            //Listener listener = Listeners.Find(x => x.ConnectionString == connectionString);
-            //if (listener == null)
-            //    return;
-            //Subscription subscription = new Subscription(connectionString, procedureCmd, subscriberName, null, new DateTime());
-            //listener.RemoveSubscription(subscription);
+            string key = appName + connectionString;
+            Listener listener = Listeners[key];
+            if (listener != null)
+            {
+                Subscription subscription = new Subscription(
+                    appName,
+                    subscriberName,
+                    procedureSchemaName,
+                    procedureName,
+                    procedureParameters,
+                    notificationValidFor
+                    );
+                listener.SqlProcedures.UninstallSubscription(subscription);
+            }
+            else
+                throw new NullReferenceException("No DependencyDB.StartListener() invoked for current appName and connectionString combination.");
         }
-
-        //internal static void UnSubscribeAll(string connectionString)
-        //{
-        //     Listeners.RemoveAll(x => x.ConnectionString == connectionString);
-
-        //    if (listener == null)
-        //        return;
-        //    listener.
-        //    throw new NotImplementedException();
-        //}
     }
 }

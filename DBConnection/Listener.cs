@@ -3,33 +3,33 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace DBConnection
 {
-    public class Listener
+    class Listener : IDisposable
     {
-        public delegate void HandleNotification(XDocument x);
-        private List<Subscription> Subscriptions = new List<Subscription>();
         /// <summary>
         /// CancellationTokenSource used to cancel Listener task.
         /// </summary>
         private CancellationTokenSource _LisenerCancellationTokenSource;
+        public DependencyDB.HandleMessage MessageHandler;
 
         /// <summary>
         /// Instance used 
         /// </summary>
-        private SqlProcedures SqlProcedures;
+        public SqlProcedures SqlProcedures { get; }
+        public string AppName { get; }
 
         /// <summary>
         /// Returns new Listener using connectionString to connect to DB.
         /// </summary>
         /// <param name="connectionString"> Connection string used for connectiong to DB. </param>
         /// <param name="sqlTimeout"> Timeout used for waiting for DependencyDB messages. </param>
-        public Listener(string connectionString, int sqlTimeout=30)
+        public Listener(string appName, string connectionString, DependencyDB.HandleMessage messageHandler, int sqlTimeout=30)
         {
-            //SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
-            //ConnectionString = connectionString;
+            AppName = appName;
+            SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
+            MessageHandler = messageHandler;
         }
 
         /// <summary>
@@ -41,10 +41,16 @@ namespace DBConnection
             _LisenerCancellationTokenSource = new CancellationTokenSource();
             try
             {
-                Task.Run(() => NotificationLoop(), _LisenerCancellationTokenSource.Token);
+                Task.Factory.StartNew(
+                    NotificationLoop,
+                    _LisenerCancellationTokenSource.Token, 
+                    TaskCreationOptions.LongRunning,
+                    TaskScheduler.Default
+                    );
             }
             catch (TaskCanceledException)
-            { }
+            {
+            }
         }
 
         /// <summary>
@@ -69,31 +75,14 @@ namespace DBConnection
         /// </summary>
         private void NotificationLoop()
         {
-            //while (IsListening())
-            //{
-            //    List<EventMessage> messages = SqlProcedures.ReceiveNotification();
-            //    foreach (EventMessage message in messages)
-            //    {
-            //        if (message.IsValid())
-            //        {
-            //            List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetHashText() == message.Subscription.GetHashText());
-            //            foreach (Subscription subscription in subscriptions)
-            //            {
-            //                subscription.InvokeNotification(message.NotificationEventArgs);
-            //            }
-            //        }
-            //    }
-            //}
-        }
-
-        private void RemoveOutdatedSubscriptions()
-        {
-            //List<Subscription> subscriptions = Subscriptions.FindAll(x => x.GetValidTill() < DateTime.Now );
-            //foreach (Subscription subscription in subscriptions)
-            //{
-            //    SqlProcedures.SqlUninstal(subscription);
-            //}
-            //Subscriptions.RemoveAll(x => x.GetValidTill() < DateTime.Now);
+            while (IsListening())
+            {
+                List<NotificationMessage> messages = SqlProcedures.ReceiveSubscription(AppName);
+                foreach (NotificationMessage message in messages)
+                {
+                    MessageHandler.Invoke(message.SubscriberString, message);
+                }
+            }
         }
 
         /// <summary>
@@ -109,14 +98,10 @@ namespace DBConnection
                 return false;
         }
 
-        public string ConnectionString { get; }
-        public void AddSubscription(Subscription subscription)
+        public void Dispose()
         {
-            Subscriptions.Add(subscription);
-        }
-        public void RemoveSubscription(Subscription subscription)
-        {
-            Subscriptions.RemoveAll(x => x.GetHashText() == subscription.GetHashText());
+            if (IsListening())
+                Stop();
         }
     }
 }

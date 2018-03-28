@@ -23,6 +23,8 @@ BEGIN
 	DECLARE @V_SubscribersTableName SYSNAME = '<7>' ;
 
 	DECLARE @V_ExceptionMessage NVARCHAR(max);
+
+	EXEC [<3>].[P_UninstallSubscription] '',0 -- remove outdated notifications.
 	
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
 	SET @V_ProcedureParametersList = ISNULL(

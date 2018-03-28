@@ -16,15 +16,21 @@ namespace DBConnectionTests
         AccessDB serviceAccessDB = new AccessDB(CommonTestsValues.ServiceConnectionString);
         AccessDB serviceAccessDBAdmin = new AccessDB(CommonTestsValues.AdminConnectionString);
 
-        public static SqlParameterCollection GetSqlParameterCollectionForTestProcedure(int param1=0, int param2=0, bool insert1=false, bool insert2 = false, bool delete1 = false, bool delete2 = false)
+        public static SqlParameterCollection GetSqlParameterCollectionForTestProcedure(int? param1=null, int? param2=null, bool insert1=false, bool insert2 = false, bool delete1 = false, bool delete2 = false)
         {
             SqlCommand sqlCommand = new SqlCommand();
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, param1));
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, param2));
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, insert1));
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, insert2));
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, delete1));
-            sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, delete2));
+            if(param1.HasValue)
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, param1));
+            else
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, DBNull.Value));
+            if (param2.HasValue)
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, param2));
+            else
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, DBNull.Value));
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, insert1));
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, insert2));
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, delete1));
+                sqlCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, delete2));
             return sqlCommand.Parameters;
         }
 
@@ -33,7 +39,7 @@ namespace DBConnectionTests
         {
             SetDBState.SetAdminInstalledDB(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
 
-            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 20);
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10);
             Subscription subscription = new Subscription(
                 CommonTestsValues.MainServiceName, 
                 CommonTestsValues.FirstSunscriberName, 
@@ -63,7 +69,7 @@ namespace DBConnectionTests
         [TestMethod]
         public void ReceiveErrorSubscription()
         {
-            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 10);
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10);
             SetDBState.SetSingleSubscriptionInstalledDB(
                 CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
@@ -91,7 +97,7 @@ namespace DBConnectionTests
         [TestMethod]
         public void ReceiveSubscription()
         {
-            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10, 10);
+            SqlParameterCollection sqlParameters = GetSqlParameterCollectionForTestProcedure(10);
             SetDBState.SetSingleSubscriptionInstalledDB(
                 CommonTestsValues.DefaultTestDBName,
                 CommonTestsValues.MainServiceName,
@@ -104,7 +110,7 @@ namespace DBConnectionTests
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, 10));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, 10));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, true));
-            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, false));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, true));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, false));
             dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, false));
             serviceAccessDBAdmin.SQLRunNonQueryProcedure(dataChangeCommand, 30);

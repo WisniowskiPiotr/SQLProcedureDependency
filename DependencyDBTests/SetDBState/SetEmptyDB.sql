@@ -76,19 +76,14 @@ SET @V_Cmd = '
 				WHERE [C_Column] = @V_Param2 ;
 			END
 
-		SELECT @V_Param1, 
-			@V_Param2, 
-			@V_Insert1,
-			@V_Insert2,
-			@V_Delete1,
-			@V_Delete2,
+		SELECT 
 			[TBL_FirstTable].[C_Column], 
 			[TBL_SecondTable].[C_Column]
 		FROM [dbo].[TBL_FirstTable] AS TBL_FirstTable
 		INNER JOIN dbo.TBL_SecondTable AS TBL_SecondTable
-			ON TBL_FirstTable.C_ID = TBL_SecondTable.C_ID
-		--WHERE TBL_FirstTable.C_Column = ISNULL( @V_Param1, TBL_FirstTable.C_Column )
-		--	OR TBL_SecondTable.C_Column = ISNULL( @V_Param2, TBL_SecondTable.C_Column );
+			ON TBL_FirstTable.C_Column = TBL_SecondTable.C_Column
+		WHERE TBL_FirstTable.C_Column = ISNULL( @V_Param1, TBL_FirstTable.C_Column )
+			AND TBL_SecondTable.C_Column = ISNULL( @V_Param2, TBL_SecondTable.C_Column );
 		RETURN 0;
 	END
 
@@ -99,11 +94,7 @@ EXEC ( @V_Cmd );
 SET @V_Cmd = '
 	CREATE PROCEDURE [dbo].[P_TestGetProcedure]
 		@V_Param1 int = null,
-		@V_Param2 int = null,
-		@V_Insert1 bit = 0,
-		@V_Insert2 bit = 0,
-		@V_Delete1 bit = 0,
-		@V_Delete2 bit = 0
+		@V_Param2 int = null
 	AS
 	BEGIN
 
@@ -111,15 +102,14 @@ SET @V_Cmd = '
 		SET QUOTED_IDENTIFIER ON;
 		SET NOCOUNT ON; 
 
-		SELECT @V_Param1, 
-			@V_Param2,
+		SELECT 
 			[TBL_FirstTable].[C_Column], 
 			[TBL_SecondTable].[C_Column]
 		FROM [dbo].[TBL_FirstTable] AS TBL_FirstTable
 		INNER JOIN dbo.TBL_SecondTable AS TBL_SecondTable
-			ON TBL_FirstTable.C_ID = TBL_SecondTable.C_ID
-		--WHERE TBL_FirstTable.C_Column = ISNULL( @V_Param1, TBL_FirstTable.C_Column )
-		--	OR TBL_SecondTable.C_Column = ISNULL( @V_Param2, TBL_SecondTable.C_Column );
+			ON TBL_FirstTable.C_Column = TBL_SecondTable.C_Column
+		WHERE TBL_FirstTable.C_Column = ISNULL( @V_Param1, TBL_FirstTable.C_Column )
+			AND TBL_SecondTable.C_Column = ISNULL( @V_Param2, TBL_SecondTable.C_Column );
 		RETURN 0;
 	END
 

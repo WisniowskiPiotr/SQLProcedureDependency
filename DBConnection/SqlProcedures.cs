@@ -86,13 +86,15 @@ namespace DBConnection
 
         private static string GetSqlParameterStringValue(object paramValue, SqlDbType sqlDbType)
         {
+            if (paramValue == DBNull.Value || paramValue == null)
+                return "null";
             switch (sqlDbType)
             {
                 case SqlDbType.Bit:
                     bool value;
                     if (!Boolean.TryParse(paramValue.ToString(), out value))
                     {
-                        throw new ArgumentException( paramValue.ToString() + " is not boolean. ");
+                        throw new ArgumentException( paramValue + " is not boolean. ");
                     }
                     return value ? "1" : "0" ;
                 case SqlDbType.Char:

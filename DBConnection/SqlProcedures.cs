@@ -7,7 +7,7 @@ using System.Data.SqlClient;
 
 namespace DBConnection
 {
-    public class SqlProcedures
+    internal class SqlProcedures
     {
         public AccessDB AccessDBInstance { get; }
         private string ProcedureNameInstall = "[P_InstallSubscription]";

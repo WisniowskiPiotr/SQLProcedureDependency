@@ -5,7 +5,7 @@ using System.Text;
 
 namespace DBConnection
 {
-    public static partial class Helpers
+    internal static partial class Helpers
     {
         /// <summary>
         /// Privides additional data when SQL exception occures.

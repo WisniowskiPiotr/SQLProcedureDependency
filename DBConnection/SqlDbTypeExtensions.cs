@@ -3,7 +3,7 @@ using System.Data;
 
 namespace DBConnection
 {
-    public static class SqlDbTypeExtensions
+    internal static class SqlDbTypeExtensions
     {
         /// <summary>
         /// Returns string representing SqlDbType.

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DBConnection
 {
-    class Listener : IDisposable
+    internal class Listener : IDisposable
     {
         /// <summary>
         /// CancellationTokenSource used to cancel Listener task.

@@ -33,11 +33,7 @@ namespace DBConnection
         }
         public static void Subscribe(string appName, string connectionString, string subscriberName, string procedureSchemaName, string procedureName, SqlParameterCollection procedureParameters, DateTime validTill)
         {
-            string key = appName + connectionString;
-            Listener listener = Listeners[key];
-            if (listener != null)
-            {
-                Subscription subscription = new Subscription(
+            Subscription subscription = new Subscription(
                     appName,
                     subscriberName,
                     procedureSchemaName,
@@ -45,6 +41,14 @@ namespace DBConnection
                     procedureParameters,
                     Convert.ToInt32((validTill - DateTime.Now).TotalSeconds)
                     );
+            Subscribe(appName, connectionString, subscription);
+        }
+        public static void Subscribe(string appName, string connectionString, Subscription subscription)
+        {
+            string key = appName + connectionString;
+            Listener listener = Listeners[key];
+            if (listener != null)
+            {
                 listener.SqlProcedures.InstallSubscription(subscription);
             }
             else
@@ -52,11 +56,7 @@ namespace DBConnection
         }
         public static void UnSubscribe(string appName, string connectionString, string subscriberName, string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters = null, int notificationValidFor = 86400)
         {
-            string key = appName + connectionString;
-            Listener listener = Listeners[key];
-            if (listener != null)
-            {
-                Subscription subscription = new Subscription(
+            Subscription subscription = new Subscription(
                     appName,
                     subscriberName,
                     procedureSchemaName,
@@ -64,6 +64,14 @@ namespace DBConnection
                     procedureParameters,
                     notificationValidFor
                     );
+            UnSubscribe(appName, connectionString, subscription);
+        }
+        public static void UnSubscribe(string appName, string connectionString, Subscription subscription)
+        {
+            string key = appName + connectionString;
+            Listener listener = Listeners[key];
+            if (listener != null)
+            {
                 listener.SqlProcedures.UninstallSubscription(subscription);
             }
             else

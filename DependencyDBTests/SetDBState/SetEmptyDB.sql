@@ -84,7 +84,7 @@ SET @V_Cmd = '
 			ON TBL_FirstTable.C_Column = TBL_SecondTable.C_Column
 		WHERE TBL_FirstTable.C_Column = ISNULL( @V_Param1, TBL_FirstTable.C_Column )
 			AND TBL_SecondTable.C_Column = ISNULL( @V_Param2, TBL_SecondTable.C_Column );
-		RETURN 0;
+		RETURN ;
 	END
 
 ' ;
@@ -110,7 +110,7 @@ SET @V_Cmd = '
 			ON TBL_FirstTable.C_Column = TBL_SecondTable.C_Column
 		WHERE TBL_FirstTable.C_Column = ISNULL( @V_Param1, TBL_FirstTable.C_Column )
 			AND TBL_SecondTable.C_Column = ISNULL( @V_Param2, TBL_SecondTable.C_Column );
-		RETURN 0;
+		RETURN ;
 	END
 
 ' ;

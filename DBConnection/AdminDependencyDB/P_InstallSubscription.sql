@@ -24,7 +24,7 @@ BEGIN
 
 	DECLARE @V_ExceptionMessage NVARCHAR(max);
 
-	EXEC [<3>].[P_UninstallSubscription] '',0 -- remove outdated notifications.
+	EXEC [<3>].[P_UninstallSubscription] 'OutDatedSubscribers',0 -- remove outdated notifications.
 	
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
 	SET @V_ProcedureParametersList = ISNULL(
@@ -105,7 +105,6 @@ BEGIN
 			SET @V_ExceptionMessage  = 'Procedure text was not found - ' + QUOTENAME( @V_ProcedureSchemaName ) + '.' + QUOTENAME( @V_ProcedureName );
 			THROW 99997, @V_ExceptionMessage , 1;
 		END
-	SET @V_ProcedureText = REPLACE( @V_ProcedureText , 'RETURN ', '-- RETURN ');
 
 	-- get rid of begining of procedure
 	DECLARE @V_startPoz INT = ( CHARINDEX( 'BEGIN', @V_ProcedureText )) ;
@@ -139,7 +138,7 @@ BEGIN
 		OR @V_ResultTableDefinition = ''
 	)
 		BEGIN
-			SET @V_ExceptionMessage = 'Procedure text is too complex. Sys.dm_exec_describe_first_result_set cannot determine its return table schema. Modify Your procedure in a way it will return consistent first result set types. - ' + QUOTENAME( @V_ProcedureSchemaName ) + '.' + QUOTENAME( @V_ProcedureName );
+			SET @V_ExceptionMessage = 'Procedure text is too complex. Sys.dm_exec_describe_first_result_set cannot determine its return table schema. Modify Your procedure in a way it will return consistent first result set types. Typical problem is returning return codes like ''RETURN 0'' (In this case use ''RETURN'' instead) - ' + QUOTENAME( @V_ProcedureSchemaName ) + '.' + QUOTENAME( @V_ProcedureName );
 			THROW 99996, @V_ExceptionMessage , 1;
 		END
 	SET @V_ResultTableDefinition = '

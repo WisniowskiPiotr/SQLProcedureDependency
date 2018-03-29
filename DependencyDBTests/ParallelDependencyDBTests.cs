@@ -1,0 +1,283 @@
+﻿using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using DBConnection;
+using DBConnectionTests.Properties;
+using System.Data.SqlClient;
+using System.Collections.Generic;
+using Microsoft.SqlServer.Server;
+using System.Data;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace DBConnectionTests
+{
+    [TestClass]
+    public class ParallelDependencyDBTests
+    {
+        List<string> SingleChangeWithMultipleSubscribers_Subscribers = new List<string>();
+        private void SingleChangeWithMultipleSubscribers_HandleMsg(string subscriber, NotificationMessage message)
+        {
+            SingleChangeWithMultipleSubscribers_Subscribers.RemoveAll(x => x == subscriber);
+        }
+        [TestMethod]
+        public void SingleChangeWithMultipleSubscribers()
+        {
+            SingleChangeWithMultipleSubscribers_Subscribers = new List<string>();
+            SetDBState.SetAdminInstalledDB(
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginPass);
+
+            DependencyDB.StartListener(
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.ServiceConnectionString,
+                SingleChangeWithMultipleSubscribers_HandleMsg
+                );
+
+            
+            SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
+            DateTime validTill = (DateTime.Now).AddDays(5.0);
+            for (int i = 0; i < 1000; i++)
+            {
+                string subscriberName = "subscriber" + i;
+                SingleChangeWithMultipleSubscribers_Subscribers.Add(subscriberName);
+                DependencyDB.Subscribe(
+                    CommonTestsValues.MainServiceName,
+                    subscriberName,
+                    CommonTestsValues.SubscribedProcedureSchema,
+                    "P_TestGetProcedure",
+                    sqlParameters,
+                    validTill
+                    );
+            }
+
+            AccessDB accessDB = new AccessDB(CommonTestsValues.AdminConnectionString);
+            SqlCommand dataChangeCommand = new SqlCommand("dbo.P_TestSetProcedure");
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, 10));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, 10));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, true));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, true));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, false));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, false));
+            accessDB.SQLRunNonQueryProcedure(dataChangeCommand, 30);
+
+
+            Task waitForResults = new Task(() =>
+            {
+                while (SingleChangeWithMultipleSubscribers_Subscribers.Count >0)
+                {
+                    Thread.Sleep(100);
+                }
+            });
+            waitForResults.Start();
+            waitForResults.Wait(20000);
+
+            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+
+            if (SingleChangeWithMultipleSubscribers_Subscribers.Count > 0)
+            {
+                Assert.Fail(SingleChangeWithMultipleSubscribers_Subscribers.Count + " subscribers not reciver notification.");
+            }
+        }
+
+        List<string> ParallelSubscribeTest_Subscribers = new List<string>();
+        private void ParallelSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
+        {
+            ParallelSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
+        }
+        [TestMethod]
+        public void ParallelSubscribeTest()
+        {
+            ParallelSubscribeTest_Subscribers = new List<string>();
+            SetDBState.SetAdminInstalledDB(
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginPass);
+
+            DependencyDB.StartListener(
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.ServiceConnectionString,
+                ParallelSubscribeTest_HandleMsg
+                );
+
+
+            SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
+            DateTime validTill = (DateTime.Now).AddDays(5.0);
+            for (int i = 0; i < 1000; i++)
+            {
+                string subscriberName = "subscriber" + i;
+                ParallelSubscribeTest_Subscribers.Add(subscriberName);
+            }
+            Parallel.ForEach(ParallelSubscribeTest_Subscribers,
+                (subscriberName) =>
+                {
+                    DependencyDB.Subscribe(
+                    CommonTestsValues.MainServiceName,
+                    subscriberName,
+                    CommonTestsValues.SubscribedProcedureSchema,
+                    "P_TestGetProcedure",
+                    sqlParameters,
+                    validTill
+                    );
+                });
+            
+
+            AccessDB accessDB = new AccessDB(CommonTestsValues.AdminConnectionString);
+            SqlCommand dataChangeCommand = new SqlCommand("dbo.P_TestSetProcedure");
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param1", SqlDbType.Int, 10));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Param2", SqlDbType.Int, 10));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert1", SqlDbType.Bit, true));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Insert2", SqlDbType.Bit, true));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete1", SqlDbType.Bit, false));
+            dataChangeCommand.Parameters.Add(AccessDB.CreateSqlParameter("@V_Delete2", SqlDbType.Bit, false));
+            accessDB.SQLRunNonQueryProcedure(dataChangeCommand, 30);
+
+
+            Task waitForResults = new Task(() =>
+            {
+                while (ParallelSubscribeTest_Subscribers.Count > 0)
+                {
+                    Thread.Sleep(100);
+                }
+            });
+            waitForResults.Start();
+            waitForResults.Wait(20000);
+
+            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+
+            if (ParallelSubscribeTest_Subscribers.Count > 0)
+            {
+                Assert.Fail(ParallelSubscribeTest_Subscribers.Count + " subscribers not reciver notification.");
+            }
+        }
+
+        List<string> ParallelUnSubscribeTest_Subscribers = new List<string>();
+        private void ParallelUnSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
+        {
+            ParallelUnSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
+        }
+        [TestMethod]
+        public void ParallelUNSubscribeTest()
+        {
+            ParallelUnSubscribeTest_Subscribers = new List<string>();
+            SetDBState.SetAdminInstalledDB(
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginPass);
+
+            DependencyDB.StartListener(
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.ServiceConnectionString,
+                ParallelUnSubscribeTest_HandleMsg
+                );
+
+
+            SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
+            DateTime validTill = (DateTime.Now).AddDays(5.0);
+            for (int i = 0; i < 1000; i++)
+            {
+                string subscriberName = "subscriber" + i;
+                ParallelUnSubscribeTest_Subscribers.Add(subscriberName);
+            }
+            Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
+                (subscriberName) =>
+                {
+                    DependencyDB.Subscribe(
+                    CommonTestsValues.MainServiceName,
+                    subscriberName,
+                    CommonTestsValues.SubscribedProcedureSchema,
+                    "P_TestGetProcedure",
+                    sqlParameters,
+                    validTill
+                    );
+                });
+
+            Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
+                (subscriberName) =>
+                {
+                    DependencyDB.UnSubscribe(
+                    CommonTestsValues.MainServiceName,
+                    subscriberName,
+                    CommonTestsValues.SubscribedProcedureSchema,
+                    "P_TestGetProcedure",
+                    sqlParameters
+                    );
+
+                });
+
+            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+            
+        }
+
+        List<string> ParallelUnSubscribeSubscribeTest_Subscribers = new List<string>();
+        private void ParallelUnSubscribeSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
+        {
+            ParallelUnSubscribeSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
+        }
+        [TestMethod]
+        public void ParallelUnSubscribeSubscribeTest()
+        {
+            ParallelUnSubscribeTest_Subscribers = new List<string>();
+            SetDBState.SetAdminInstalledDB(
+                CommonTestsValues.DefaultTestDBName,
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.LoginPass);
+
+            DependencyDB.StartListener(
+                CommonTestsValues.MainServiceName,
+                CommonTestsValues.ServiceConnectionString,
+                ParallelUnSubscribeSubscribeTest_HandleMsg
+                );
+
+
+            SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
+            DateTime validTill = (DateTime.Now).AddDays(5.0);
+            for (int i = 0; i < 1000; i++)
+            {
+                string subscriberName = "subscriber" + i;
+                ParallelUnSubscribeTest_Subscribers.Add(subscriberName);
+            }
+            Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
+                (subscriberName) =>
+                {
+                    DependencyDB.Subscribe(
+                        CommonTestsValues.MainServiceName,
+                        subscriberName,
+                        CommonTestsValues.SubscribedProcedureSchema,
+                        "P_TestGetProcedure",
+                        sqlParameters,
+                        validTill
+                        );
+                });
+
+            Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
+                (subscriberName) =>
+                {
+                    if (subscriberName.GetHashCode() % 2 == 0)
+                    {
+                        DependencyDB.UnSubscribe(
+                            CommonTestsValues.MainServiceName,
+                            subscriberName,
+                            CommonTestsValues.SubscribedProcedureSchema,
+                            "P_TestGetProcedure",
+                            sqlParameters
+                            );
+                    }
+                    else
+                    {
+                        DependencyDB.Subscribe(
+                            CommonTestsValues.MainServiceName,
+                            subscriberName,
+                            CommonTestsValues.SubscribedProcedureSchema,
+                            "P_TestGetProcedure",
+                            sqlParameters,
+                            validTill
+                            );
+                    }
+                });
+
+            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+
+        }
+    }
+}

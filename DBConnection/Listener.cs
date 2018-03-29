@@ -12,7 +12,10 @@ namespace DBConnection
         /// CancellationTokenSource used to cancel Listener task.
         /// </summary>
         private CancellationTokenSource _LisenerCancellationTokenSource;
-        public DependencyDB.HandleMessage MessageHandler;
+        private Task listenerJob;
+        public DependencyDB.HandleMessage MessageHandler { get; }
+        public DependencyDB.HandleMessage UnsubscribedMessageHandler { get; }
+        public DependencyDB.HandleMessage ErrorMessageHandler { get; }
 
         /// <summary>
         /// Instance used 
@@ -25,11 +28,19 @@ namespace DBConnection
         /// </summary>
         /// <param name="connectionString"> Connection string used for connectiong to DB. </param>
         /// <param name="sqlTimeout"> Timeout used for waiting for DependencyDB messages. </param>
-        public Listener(string appName, string connectionString, DependencyDB.HandleMessage messageHandler, int sqlTimeout=30)
+        public Listener(
+            string appName, 
+            string connectionString, 
+            DependencyDB.HandleMessage messageHandler, 
+            DependencyDB.HandleMessage unsubscribedMessageHandler = null, 
+            DependencyDB.HandleMessage errorMessageHandler = null, 
+            int sqlTimeout=30)
         {
             AppName = appName;
             SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
             MessageHandler = messageHandler;
+            UnsubscribedMessageHandler = unsubscribedMessageHandler ?? messageHandler;
+            ErrorMessageHandler = errorMessageHandler ?? unsubscribedMessageHandler ?? messageHandler;
         }
 
         /// <summary>
@@ -41,7 +52,7 @@ namespace DBConnection
             _LisenerCancellationTokenSource = new CancellationTokenSource();
             try
             {
-                Task.Factory.StartNew(
+                listenerJob=Task.Factory.StartNew(
                     NotificationLoop,
                     _LisenerCancellationTokenSource.Token, 
                     TaskCreationOptions.LongRunning,
@@ -80,6 +91,12 @@ namespace DBConnection
                 List<NotificationMessage> messages = SqlProcedures.ReceiveSubscription(AppName);
                 foreach (NotificationMessage message in messages)
                 {
+                    switch (message.MessageType)
+                    {
+                        case NotificationMessageType.Error:
+                            ErrorMessageHandler.Invoke(message.SubscriberString, message);
+                            break;
+                    }
                     MessageHandler.Invoke(message.SubscriberString, message);
                 }
             }
@@ -92,7 +109,9 @@ namespace DBConnection
         public bool IsListening()
         {
             if (_LisenerCancellationTokenSource != null
-                && !_LisenerCancellationTokenSource.IsCancellationRequested)
+                && !_LisenerCancellationTokenSource.IsCancellationRequested
+                && listenerJob !=null
+                && listenerJob.Status == TaskStatus.Running)
                 return true;
             else
                 return false;

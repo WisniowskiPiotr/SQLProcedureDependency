@@ -120,16 +120,16 @@ namespace DBConnectionTests
                             accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
                             break;
                         default:
-                            DependencyDB.Subscribe(
-                                CommonTestsValues.MainServiceName,
-                                subscriberName,
-                                CommonTestsValues.SubscribedProcedureSchema,
-                                "P_TestGetProcedure",
-                                sqlParameters,
-                                validTill
-                                );
                             break;
                     }
+                    DependencyDB.Subscribe(
+                        CommonTestsValues.MainServiceName,
+                        subscriberName,
+                        CommonTestsValues.SubscribedProcedureSchema,
+                        "P_TestGetProcedure",
+                        sqlParameters,
+                        validTill
+                        );
                 });
             
 
@@ -170,6 +170,7 @@ namespace DBConnectionTests
         [TestMethod]
         public void ParallelUnSubscribeTest()
         {
+
             ParallelUnSubscribeTest_Subscribers = new List<string>();
             SetDBState.SetAdminInstalledDB(
                 CommonTestsValues.DefaultTestDBName,

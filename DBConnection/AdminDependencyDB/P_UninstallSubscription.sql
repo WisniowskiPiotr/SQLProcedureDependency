@@ -169,39 +169,54 @@ BEGIN
 					WHILE @@FETCH_STATUS = 0 
 						BEGIN
 							BEGIN TRANSACTION 
-							-- lock table
-							SET @V_Cmd = '
-								DECLARE @V_Dummy int
-								SELECT TOP 1 
-									@V_Dummy = 1 
-								FROM ' + QUOTENAME( @V_TableSchemaName ) + '.' + QUOTENAME( @V_TableName ) + '
-								WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
-							' ;
-							EXEC sp_executesql @V_Cmd
-
-							SET @V_Cmd = '
-								DROP TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' ; '
-							EXEC sp_executesql @V_Cmd
-
+								SET @V_Cmd = '
+									DECLARE @V_Dummy int
+									SELECT TOP 1 
+											@V_Dummy = 1 
+										FROM sys.triggers AS TBL_Triggers
+										WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
+									' ;
+								EXEC sp_executesql @V_Cmd ;
+								IF EXISTS (
+									SELECT TBL_Triggers.name AS C_TriggerName
+									FROM sys.triggers AS TBL_Triggers
+									WHERE QUOTENAME( TBL_Triggers.name ) = QUOTENAME( @V_TriggerName )
+								)
+									BEGIN
+										SET @V_Cmd = '
+											DROP TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' ; '
+										EXEC sp_executesql @V_Cmd
+									END
 							COMMIT TRANSACTION;
 
 							DECLARE @V_ReferencedTableType SYSNAME ;
 							SET @V_ReferencedTableType = 'TYPE_' + @V_MainName + '_' + @V_TableSchemaName + '_' + @V_TableName + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
-							IF EXISTS (
-								SELECT SysTypes.name 
-								FROM sys.types AS SysTypes
-								INNER JOIN sys.schemas AS SysSchemas
-									ON SysSchemas.schema_id = SysTypes.schema_id
-									AND SysSchemas.name = @V_SchemaName
-								WHERE 
-									SysTypes.is_table_type = 1  
-									AND SysTypes.name = @V_ReferencedTableType
-							)
-								BEGIN
-									SET @V_Cmd = '
-										DROP TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' ; ' ;
-									EXEC sp_executesql @V_Cmd ;
-								END
+							
+							BEGIN TRANSACTION 
+								SET @V_Cmd = '
+									DECLARE @V_Dummy int
+									SELECT TOP 1 
+											@V_Dummy = 1 
+										FROM sys.types AS SysTypes
+										WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
+									' ;
+								EXEC sp_executesql @V_Cmd ;
+								IF EXISTS (
+									SELECT SysTypes.name 
+									FROM sys.types AS SysTypes
+									INNER JOIN sys.schemas AS SysSchemas
+										ON SysSchemas.schema_id = SysTypes.schema_id
+										AND QUOTENAME( SysSchemas.name ) = QUOTENAME( @V_SchemaName )
+									WHERE 
+										SysTypes.is_table_type = 1 AND
+										QUOTENAME( SysTypes.name ) = QUOTENAME( @V_ReferencedTableType )
+								)
+									BEGIN
+										SET @V_Cmd = '
+											DROP TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' ; ' ;
+										EXEC sp_executesql @V_Cmd ;
+									END
+							COMMIT TRANSACTION;
 
 							FETCH NEXT FROM CU_TriggersToBeRemovedCursor 
 								INTO @V_TriggerName,

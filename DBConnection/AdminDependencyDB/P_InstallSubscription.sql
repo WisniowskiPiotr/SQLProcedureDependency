@@ -175,35 +175,42 @@ BEGIN
 	DECLARE @V_ReferencedTable SYSNAME ;
 	DECLARE @V_ReferencedTableType SYSNAME ;
 	DECLARE @V_ReferencedTableTypeDefinition NVARCHAR(max) ;
-	BEGIN TRANSACTION 
-		DECLARE CU_ReferencedTablesCursor CURSOR FOR
-			SELECT [SchemaName], 
-				[TableName]
-			FROM @TBL_ReferencedTables ;
-		OPEN CU_ReferencedTablesCursor ;
-		FETCH NEXT FROM CU_ReferencedTablesCursor 
-			INTO @V_ReferencedSchema, @V_ReferencedTable ;
-		WHILE @@FETCH_STATUS = 0
-			BEGIN
+	DECLARE CU_ReferencedTablesCursor CURSOR FOR
+		SELECT [SchemaName], 
+			[TableName]
+		FROM @TBL_ReferencedTables ;
+	OPEN CU_ReferencedTablesCursor ;
+	FETCH NEXT FROM CU_ReferencedTablesCursor 
+		INTO @V_ReferencedSchema, @V_ReferencedTable ;
+	WHILE @@FETCH_STATUS = 0
+		BEGIN
 			
-				-- need to create type to pass data to dynamic sql
-				IF( LEN( 'TYPE_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ) > 127)
-					BEGIN
-						ROLLBACK TRANSACTION
-						SET @V_ExceptionMessage = 'Name ''TYPE_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ''' exeeds 127 chars. Consider renaming ''' + @V_MainName + ''', '''+ @V_ReferencedSchema + ''', '''+ @V_ReferencedTable + ''' to shorter names. ';
-						THROW 99994, @V_ExceptionMessage , 1;
-					END
-				SET @V_ReferencedTableType = 'TYPE_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
+			-- need to create type to pass data to dynamic sql
+			IF( LEN( 'TYPE_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ) > 127)
+				BEGIN
+					SET @V_ExceptionMessage = 'Name ''TYPE_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ''' exeeds 127 chars. Consider renaming ''' + @V_MainName + ''', '''+ @V_ReferencedSchema + ''', '''+ @V_ReferencedTable + ''' to shorter names. ';
+					THROW 99994, @V_ExceptionMessage , 1;
+				END
+			SET @V_ReferencedTableType = 'TYPE_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
 			
+			BEGIN TRANSACTION
+				SET @V_Cmd = '
+					DECLARE @V_Dummy int
+					SELECT TOP 1 
+							@V_Dummy = 1 
+						FROM sys.types AS SysTypes
+						WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
+					' ;
+				EXEC sp_executesql @V_Cmd ;
 				IF NOT EXISTS (
 					SELECT SysTypes.name 
 					FROM sys.types AS SysTypes
 					INNER JOIN sys.schemas AS SysSchemas
 						ON SysSchemas.schema_id = SysTypes.schema_id
-						AND SysSchemas.name = @V_SchemaName
+						AND QUOTENAME( SysSchemas.name ) = QUOTENAME( @V_SchemaName )
 					WHERE 
 						SysTypes.is_table_type = 1  
-						AND SysTypes.name = @V_ReferencedTableType
+						AND QUOTENAME( SysTypes.name ) = QUOTENAME( @V_ReferencedTableType )
 				)
 				BEGIN
 					SET @V_ReferencedTableTypeDefinition = (
@@ -220,211 +227,213 @@ BEGIN
 						); ' ;
 					EXEC sp_executesql @V_Cmd ;
 				END
+			COMMIT TRANSACTION ;
 
-				SET @V_TriggerName = 'T_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
-				SET @V_TriggerNames = @V_TriggerNames + QUOTENAME( @V_TriggerName ) + ';'
-				SET @V_ReferencedQuotedTable = QUOTENAME( @V_ReferencedSchema ) + '.' + QUOTENAME( @V_ReferencedTable )
-				SET @V_ReferencedNonQuotedTable = @V_ReferencedSchema + '.' + @V_ReferencedTable
+			SET @V_TriggerName = 'T_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
+			SET @V_TriggerNames = @V_TriggerNames + QUOTENAME( @V_TriggerName ) + ';'
+			SET @V_ReferencedQuotedTable = QUOTENAME( @V_ReferencedSchema ) + '.' + QUOTENAME( @V_ReferencedTable )
+			SET @V_ReferencedNonQuotedTable = @V_ReferencedSchema + '.' + @V_ReferencedTable
 			
-				-- Trigger statement
-				SET @V_TriggerBody = '
-					ON ' + @V_ReferencedQuotedTable + ' 
-					WITH EXECUTE AS ''' + USER_NAME() + '''
-					AFTER INSERT, UPDATE, DELETE
-					AS 
-					BEGIN
-						SET NOCOUNT ON; 
-						SET XACT_ABORT OFF;
+			-- Trigger statement
+			SET @V_TriggerBody = '
+				ON ' + @V_ReferencedQuotedTable + ' 
+				WITH EXECUTE AS ''' + USER_NAME() + '''
+				AFTER INSERT, UPDATE, DELETE
+				AS 
+				BEGIN
+					SET NOCOUNT ON; 
+					SET XACT_ABORT OFF;
 
-						IF( GETDATE() > ''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''')
-							RETURN ;
+					IF( GETDATE() > ''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + ''')
+						RETURN ;
 
-						DECLARE @V_Message NVARCHAR(MAX) ;
-						DECLARE @V_MessageParameters NVARCHAR(MAX) ; 
-						DECLARE @V_MessageInserted NVARCHAR(MAX) ;
-						DECLARE @V_MessageDeleted NVARCHAR(MAX) ;
-						DECLARE @V_MessageError NVARCHAR(MAX) ;
-						DECLARE @V_Retval NVARCHAR(MAX) ;
-						DECLARE @V_Cmd NVARCHAR(MAX) ;
+					DECLARE @V_Message NVARCHAR(MAX) ;
+					DECLARE @V_MessageParameters NVARCHAR(MAX) ; 
+					DECLARE @V_MessageInserted NVARCHAR(MAX) ;
+					DECLARE @V_MessageDeleted NVARCHAR(MAX) ;
+					DECLARE @V_MessageError NVARCHAR(MAX) ;
+					DECLARE @V_Retval NVARCHAR(MAX) ;
+					DECLARE @V_Cmd NVARCHAR(MAX) ;
 						
-						DECLARE @V_TransactionName NVARCHAR(30) = ''TranSave_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ''' ;
+					DECLARE @V_TransactionName NVARCHAR(30) = ''TranSave_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + ''' ;
 
-						BEGIN TRY
-							SAVE TRANSACTION @V_TransactionName ;  
+					BEGIN TRY
+						SAVE TRANSACTION @V_TransactionName ;  
 					
-							' + @V_ResultTableDefinition + '
+						' + @V_ResultTableDefinition + '
 									
-							-- inserted rows
-							IF EXISTS (
-								SELECT * 
-									FROM INSERTED
-							)
-								BEGIN
-							
-									DECLARE @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
-									INSERT INTO @TBL_INSERTED
-									SELECT * 
-									FROM INSERTED
-							
-									SET @V_Cmd = 
-										''' + REPLACE( 'DECLARE ' + @V_ProcedureParametersDeclaration , '''', '''''' ) + ''' +
-										''' + REPLACE( 
-												REPLACE( 
-													REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_INSERTED') 
-												, @V_ReferencedNonQuotedTable , '@TBL_INSERTED') 
-											, '''', '''''' ) + ''' ;
-
-
-									INSERT INTO @TBL_ResultTable
-									EXEC sp_executesql @V_Cmd, N'' @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_INSERTED ;
-							
-									SET @V_MessageInserted = 
-										(SELECT *
-											FROM @TBL_ResultTable
-											FOR XML PATH(''row''), ROOT(''inserted'')) ;
-									
-									DELETE FROM @TBL_ResultTable ;
-								END
-
-							-- deleted rows
-							IF EXISTS (
-								SELECT * 
-									FROM DELETED
-							)
-								BEGIN
-
-									DECLARE @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
-									INSERT INTO @TBL_DELETED
-									SELECT * 
-									FROM DELETED
-							
-									SET @V_Cmd = 
-										''' + REPLACE( 'DECLARE ' + @V_ProcedureParametersDeclaration , '''', '''''' ) + ''' +
-										''' + REPLACE( 
-												REPLACE( 
-													REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_DELETED'  ) 
-												, @V_ReferencedNonQuotedTable , '@TBL_DELETED' ) 
-											, '''', '''''' ) + ''' ;
-
-
-									INSERT INTO @TBL_ResultTable
-									EXEC sp_executesql @V_Cmd, N'' @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_DELETED ;
-							
-									SET @V_MessageDeleted = 
-										(SELECT *
-											FROM @TBL_ResultTable
-											FOR XML PATH(''row''), ROOT(''deleted'')) ;
-
-									DELETE FROM @TBL_ResultTable ;
-								END
-
-						END TRY
-						BEGIN CATCH
-						
-							ROLLBACK TRANSACTION @V_TransactionName ; 
-
-							SET @V_MessageError = 
-								(SELECT 
-										ISNULL(ERROR_NUMBER(),'''') AS [number]  
-										,ISNULL(ERROR_SEVERITY(),'''') AS [severity]  
-										,ISNULL(ERROR_STATE(),'''')  AS [state]  
-										,ISNULL(ERROR_PROCEDURE(),'''') AS [procedure]  
-										,ISNULL(ERROR_LINE(),'''')  AS [linenb]  
-										,ISNULL(ERROR_MESSAGE(),'''')  AS [message]  
-									FOR XML PATH(''error'')
-								) ;
-
-						END CATCH
-
-						-- send message
-						IF @V_MessageInserted IS NOT NULL 
-							OR @V_MessageDeleted IS NOT NULL
-							OR @V_MessageError IS NOT NULL
+						-- inserted rows
+						IF EXISTS (
+							SELECT * 
+								FROM INSERTED
+						)
 							BEGIN
-								DECLARE @V_SubscriberString NVARCHAR(200) ;
-								DECLARE @V_SubscriberValidTill DATETIME ;
-								DECLARE CU_SubscribersCursor CURSOR FOR
-									SELECT TBL_SubscribersTable.C_SubscriberString,
-										TBL_SubscribersTable.C_ValidTill
-									FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS TBL_SubscribersTable
-									WHERE TBL_SubscribersTable.C_SubscriptionHash = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
-										AND TBL_SubscribersTable.C_ProcedureSchemaName = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''
-										AND TBL_SubscribersTable.C_ProcedureName = ''' + QUOTENAME( @V_ProcedureName ) + '''
-										AND TBL_SubscribersTable.C_ProcedureParameters = ''' + @V_ProcedureParametersXlm + '''
-										AND TBL_SubscribersTable.C_ValidTill > GETDATE() ;
+							
+								DECLARE @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
+								INSERT INTO @TBL_INSERTED
+								SELECT * 
+								FROM INSERTED
+							
+								SET @V_Cmd = 
+									''' + REPLACE( 'DECLARE ' + @V_ProcedureParametersDeclaration , '''', '''''' ) + ''' +
+									''' + REPLACE( 
+											REPLACE( 
+												REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_INSERTED') 
+											, @V_ReferencedNonQuotedTable , '@TBL_INSERTED') 
+										, '''', '''''' ) + ''' ;
 
-								OPEN CU_SubscribersCursor ;
-								FETCH NEXT FROM CU_SubscribersCursor 
-									INTO @V_SubscriberString,
-										@V_SubscriberValidTill;
-								WHILE @@FETCH_STATUS = 0 
-									BEGIN
-										SET @V_Message = ''<notification type="data" servicename="' + @V_MainName + '" subscriberstring="'' + @V_SubscriberString + ''" validtill="'' + CONVERT( varchar(24), @V_SubscriberValidTill, 21) + ''">''
-										SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''		
-										IF @V_MessageInserted IS NOT NULL 
-											SET @V_Message = @V_Message + @V_MessageInserted ;
-										IF @V_MessageDeleted IS NOT NULL 
-											SET @V_Message = @V_Message + @V_MessageDeleted ;
-										IF @V_MessageError IS NOT NULL  
-											SET @V_Message = @V_Message + @V_MessageError ;
-										SET @V_Message = @V_Message + ''</notification>''
+
+								INSERT INTO @TBL_ResultTable
+								EXEC sp_executesql @V_Cmd, N'' @TBL_INSERTED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_INSERTED ;
+							
+								SET @V_MessageInserted = 
+									(SELECT *
+										FROM @TBL_ResultTable
+										FOR XML PATH(''row''), ROOT(''inserted'')) ;
 									
-                						DECLARE @V_ConvHandle UNIQUEIDENTIFIER
-                						BEGIN DIALOG @V_ConvHandle 
-											FROM SERVICE ' + QUOTENAME( @V_ServiceName ) + ' 
-											TO SERVICE ''' + @V_ServiceName + ''' 
-											ON CONTRACT [DEFAULT] 
-											WITH ENCRYPTION = OFF, 
-											LIFETIME = ' + CAST( @V_NotificationValidFor AS NVARCHAR(200)) + '; 
-										SEND ON CONVERSATION @V_ConvHandle 
-											MESSAGE TYPE [DEFAULT] (@V_Message);
-										END CONVERSATION @V_ConvHandle;
-										FETCH NEXT FROM CU_SubscribersCursor 
-											INTO @V_SubscriberString,
-												@V_SubscriberValidTill ;
-									END
-								CLOSE CU_SubscribersCursor ;
-								DEALLOCATE CU_SubscribersCursor ;
+								DELETE FROM @TBL_ResultTable ;
 							END
-					END 
-				' ;
-					-- lock whole table
-					SET @V_Cmd = '
-						DECLARE @V_Dummy int
-						SELECT TOP 1 
-								@V_Dummy = 1 
-							FROM ' + @V_ReferencedQuotedTable + '
-							WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
-						' ;
-					EXEC sp_executesql @V_Cmd ;
 
-					IF NOT EXISTS (
-						SELECT [name]
-							FROM sys.triggers
-							WHERE [name] = @V_TriggerName
-					)
+						-- deleted rows
+						IF EXISTS (
+							SELECT * 
+								FROM DELETED
+						)
+							BEGIN
+
+								DECLARE @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + '
+								INSERT INTO @TBL_DELETED
+								SELECT * 
+								FROM DELETED
+							
+								SET @V_Cmd = 
+									''' + REPLACE( 'DECLARE ' + @V_ProcedureParametersDeclaration , '''', '''''' ) + ''' +
+									''' + REPLACE( 
+											REPLACE( 
+												REPLACE( @V_ProcedureText, @V_ReferencedQuotedTable, '@TBL_DELETED'  ) 
+											, @V_ReferencedNonQuotedTable , '@TBL_DELETED' ) 
+										, '''', '''''' ) + ''' ;
+
+
+								INSERT INTO @TBL_ResultTable
+								EXEC sp_executesql @V_Cmd, N'' @TBL_DELETED ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' READONLY '', @TBL_DELETED ;
+							
+								SET @V_MessageDeleted = 
+									(SELECT *
+										FROM @TBL_ResultTable
+										FOR XML PATH(''row''), ROOT(''deleted'')) ;
+
+								DELETE FROM @TBL_ResultTable ;
+							END
+
+					END TRY
+					BEGIN CATCH
+						
+						ROLLBACK TRANSACTION @V_TransactionName ; 
+
+						SET @V_MessageError = 
+							(SELECT 
+									ISNULL(ERROR_NUMBER(),'''') AS [number]  
+									,ISNULL(ERROR_SEVERITY(),'''') AS [severity]  
+									,ISNULL(ERROR_STATE(),'''')  AS [state]  
+									,ISNULL(ERROR_PROCEDURE(),'''') AS [procedure]  
+									,ISNULL(ERROR_LINE(),'''')  AS [linenb]  
+									,ISNULL(ERROR_MESSAGE(),'''')  AS [message]  
+								FOR XML PATH(''error'')
+							) ;
+
+					END CATCH
+
+					-- send message
+					IF @V_MessageInserted IS NOT NULL 
+						OR @V_MessageDeleted IS NOT NULL
+						OR @V_MessageError IS NOT NULL
 						BEGIN
-							SET @V_Cmd = '
-								CREATE TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' 
-								' + @V_TriggerBody ;
-							EXEC sp_executesql @V_Cmd ;
+							DECLARE @V_SubscriberString NVARCHAR(200) ;
+							DECLARE @V_SubscriberValidTill DATETIME ;
+							DECLARE CU_SubscribersCursor CURSOR FOR
+								SELECT TBL_SubscribersTable.C_SubscriberString,
+									TBL_SubscribersTable.C_ValidTill
+								FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS TBL_SubscribersTable
+								WHERE TBL_SubscribersTable.C_SubscriptionHash = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
+									AND TBL_SubscribersTable.C_ProcedureSchemaName = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''
+									AND TBL_SubscribersTable.C_ProcedureName = ''' + QUOTENAME( @V_ProcedureName ) + '''
+									AND TBL_SubscribersTable.C_ProcedureParameters = ''' + @V_ProcedureParametersXlm + '''
+									AND TBL_SubscribersTable.C_ValidTill > GETDATE() ;
+
+							OPEN CU_SubscribersCursor ;
+							FETCH NEXT FROM CU_SubscribersCursor 
+								INTO @V_SubscriberString,
+									@V_SubscriberValidTill;
+							WHILE @@FETCH_STATUS = 0 
+								BEGIN
+									SET @V_Message = ''<notification type="data" servicename="' + @V_MainName + '" subscriberstring="'' + @V_SubscriberString + ''" validtill="'' + CONVERT( varchar(24), @V_SubscriberValidTill, 21) + ''">''
+									SET @V_Message = @V_Message + ''' + @V_ProcedureParametersXlm + '''		
+									IF @V_MessageInserted IS NOT NULL 
+										SET @V_Message = @V_Message + @V_MessageInserted ;
+									IF @V_MessageDeleted IS NOT NULL 
+										SET @V_Message = @V_Message + @V_MessageDeleted ;
+									IF @V_MessageError IS NOT NULL  
+										SET @V_Message = @V_Message + @V_MessageError ;
+									SET @V_Message = @V_Message + ''</notification>''
+									
+                					DECLARE @V_ConvHandle UNIQUEIDENTIFIER
+                					BEGIN DIALOG @V_ConvHandle 
+										FROM SERVICE ' + QUOTENAME( @V_ServiceName ) + ' 
+										TO SERVICE ''' + @V_ServiceName + ''' 
+										ON CONTRACT [DEFAULT] 
+										WITH ENCRYPTION = OFF, 
+										LIFETIME = ' + CAST( @V_NotificationValidFor AS NVARCHAR(200)) + '; 
+									SEND ON CONVERSATION @V_ConvHandle 
+										MESSAGE TYPE [DEFAULT] (@V_Message);
+									END CONVERSATION @V_ConvHandle;
+									FETCH NEXT FROM CU_SubscribersCursor 
+										INTO @V_SubscriberString,
+											@V_SubscriberValidTill ;
+								END
+							CLOSE CU_SubscribersCursor ;
+							DEALLOCATE CU_SubscribersCursor ;
 						END
-					ELSE
-						BEGIN
-							SET @V_Cmd = N'
-								ALTER TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' 
-								' + @V_TriggerBody ;
-							EXEC sp_executesql @V_Cmd ;
-						END
+				END 
+			' ;
+			BEGIN TRANSACTION
+				SET @V_Cmd = '
+					DECLARE @V_Dummy int
+					SELECT TOP 1 
+							@V_Dummy = 1 
+						FROM ' + @V_ReferencedQuotedTable + '
+						WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
+					' ;
+				EXEC sp_executesql @V_Cmd ;
+				IF NOT EXISTS (
+					SELECT [name]
+					FROM sys.triggers
+						WITH (UPDLOCK, TABLOCKX, HOLDLOCK ) 
+					WHERE QUOTENAME( [name] ) = QUOTENAME( @V_TriggerName )
+				)
+					BEGIN
+						SET @V_Cmd = '
+							CREATE TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' 
+							' + @V_TriggerBody ;
+						EXEC sp_executesql @V_Cmd ;
+					END
+				ELSE
+					BEGIN
+						SET @V_Cmd = N'
+							ALTER TRIGGER ' + QUOTENAME( @V_TriggerName ) + ' 
+							' + @V_TriggerBody ;
+						EXEC sp_executesql @V_Cmd ;
+					END
+			COMMIT TRANSACTION ;
 				
-				FETCH NEXT FROM CU_ReferencedTablesCursor 
-					INTO @V_ReferencedSchema, @V_ReferencedTable ;
-			END
-		CLOSE CU_ReferencedTablesCursor ;
-		DEALLOCATE CU_ReferencedTablesCursor ;
+			FETCH NEXT FROM CU_ReferencedTablesCursor 
+				INTO @V_ReferencedSchema, @V_ReferencedTable ;
+		END
+	CLOSE CU_ReferencedTablesCursor ;
+	DEALLOCATE CU_ReferencedTablesCursor ;
 
-		SET @V_Cmd = '
-		
+	SET @V_Cmd = '
+		BEGIN TRANSACTION
 			IF EXISTS (
 				SELECT [C_SubscriptionHash]
 				FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS TBL_SubscribersTable
@@ -468,9 +477,9 @@ BEGIN
 						''' + CONVERT(varchar(24), DATEADD( s, @V_NotificationValidFor, GETDATE() ), 21) + '''
 					) ;
 				END
-		'
-		EXEC sp_executesql @V_Cmd ;
-	COMMIT TRANSACTION;
+		COMMIT TRANSACTION ;
+	'
+	EXEC sp_executesql @V_Cmd ;
 	RETURN 
 END ;
 

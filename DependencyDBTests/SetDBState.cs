@@ -1,7 +1,7 @@
-﻿using DBConnection;
-using DBConnectionTests.Properties;
+﻿
 using SQLDependency.DBConnection;
 using SQLDependency.DBConnection.Admin;
+using SQLDependency.DBConnectionTests.Properties;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 

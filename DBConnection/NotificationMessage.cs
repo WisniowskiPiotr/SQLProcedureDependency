@@ -2,9 +2,6 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
-using System.IO;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace SQLDependency.DBConnection

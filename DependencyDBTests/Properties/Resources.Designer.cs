@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace DBConnectionTests.Properties {
+namespace SQLDependency.DBConnectionTests.Properties {
     using System;
     using System.Reflection;
     

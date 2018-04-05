@@ -1,4 +1,4 @@
-﻿using DBConnection.Properties;
+﻿using SQLDependency.DBConnection.Properties;
 using System;
 using System.Data.SqlClient;
 using System.Linq;

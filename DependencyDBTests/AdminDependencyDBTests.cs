@@ -1,8 +1,8 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using DBConnectionTests.Properties;
 using System.Collections.Generic;
 using SQLDependency.DBConnection.Admin;
+using SQLDependency.DBConnectionTests.Properties;
 
 namespace SQLDependency.DBConnectionTests
 {

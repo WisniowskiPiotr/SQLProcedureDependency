@@ -1,10 +1,10 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using DBConnectionTests.Properties;
 using System.Data.SqlClient;
 using System.Collections.Generic;
 using System.Data;
 using SQLDependency.DBConnection;
+using SQLDependency.DBConnectionTests.Properties;
 
 namespace SQLDependency.DBConnectionTests
 {

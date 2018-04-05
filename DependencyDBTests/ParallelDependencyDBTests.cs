@@ -14,6 +14,8 @@ namespace DBConnectionTests
     [TestClass]
     public class ParallelDependencyDBTests
     {
+        AccessDB accesDB = new AccessDB(CommonTestsValues.AdminConnectionString);
+        int CountParallelInstances = 5000;
         List<string> SingleChangeWithMultipleSubscribers_Subscribers = new List<string>();
         private void SingleChangeWithMultipleSubscribers_HandleMsg(string subscriber, NotificationMessage message)
         {
@@ -37,7 +39,7 @@ namespace DBConnectionTests
             
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
             DateTime validTill = (DateTime.Now).AddDays(5.0);
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < CountParallelInstances; i++)
             {
                 string subscriberName = "subscriber" + i;
                 SingleChangeWithMultipleSubscribers_Subscribers.Add(subscriberName);
@@ -76,7 +78,7 @@ namespace DBConnectionTests
 
             if (SingleChangeWithMultipleSubscribers_Subscribers.Count > 0)
             {
-                Assert.Fail(SingleChangeWithMultipleSubscribers_Subscribers.Count + " subscribers not reciver notification.");
+                Assert.Fail(SingleChangeWithMultipleSubscribers_Subscribers.Count + " subscribers not recived notification.");
             }
         }
 
@@ -103,22 +105,31 @@ namespace DBConnectionTests
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
             DateTime validTill = (DateTime.Now).AddDays(5.0);
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < CountParallelInstances; i++)
             {
                 string subscriberName = "subscriber" + i;
                 ParallelSubscribeTest_Subscribers.Add(subscriberName);
             }
-            Parallel.ForEach(ParallelSubscribeTest_Subscribers,
+            Parallel.ForEach(
+                ParallelSubscribeTest_Subscribers,
                 (subscriberName) =>
                 {
-                    DependencyDB.Subscribe(
-                    CommonTestsValues.MainServiceName,
-                    subscriberName,
-                    CommonTestsValues.SubscribedProcedureSchema,
-                    "P_TestGetProcedure",
-                    sqlParameters,
-                    validTill
-                    );
+                    switch ( subscriberName.GetHashCode() % 2 )
+                    {
+                        case 1:
+                            accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
+                            break;
+                        default:
+                            DependencyDB.Subscribe(
+                                CommonTestsValues.MainServiceName,
+                                subscriberName,
+                                CommonTestsValues.SubscribedProcedureSchema,
+                                "P_TestGetProcedure",
+                                sqlParameters,
+                                validTill
+                                );
+                            break;
+                    }
                 });
             
 
@@ -154,10 +165,10 @@ namespace DBConnectionTests
         List<string> ParallelUnSubscribeTest_Subscribers = new List<string>();
         private void ParallelUnSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
         {
-            ParallelUnSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
+            //ParallelUnSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
         }
         [TestMethod]
-        public void ParallelUNSubscribeTest()
+        public void ParallelUnSubscribeTest()
         {
             ParallelUnSubscribeTest_Subscribers = new List<string>();
             SetDBState.SetAdminInstalledDB(
@@ -174,7 +185,7 @@ namespace DBConnectionTests
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
             DateTime validTill = (DateTime.Now).AddDays(5.0);
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < CountParallelInstances; i++)
             {
                 string subscriberName = "subscriber" + i;
                 ParallelUnSubscribeTest_Subscribers.Add(subscriberName);
@@ -182,27 +193,42 @@ namespace DBConnectionTests
             Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
                 (subscriberName) =>
                 {
-                    DependencyDB.Subscribe(
-                    CommonTestsValues.MainServiceName,
-                    subscriberName,
-                    CommonTestsValues.SubscribedProcedureSchema,
-                    "P_TestGetProcedure",
-                    sqlParameters,
-                    validTill
-                    );
+                    switch (subscriberName.GetHashCode() % 2)
+                    {
+                        case 1:
+                            accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
+                            break;
+                        default:
+                            DependencyDB.Subscribe(
+                                CommonTestsValues.MainServiceName,
+                                subscriberName,
+                                CommonTestsValues.SubscribedProcedureSchema,
+                                "P_TestGetProcedure",
+                                sqlParameters,
+                                validTill
+                                );
+                            break;
+                    }
                 });
 
             Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
                 (subscriberName) =>
                 {
+                    switch (subscriberName.GetHashCode() % 2)
+                    {
+                        case 1:
+                            accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
+                            break;
+                        default:
+                            break;
+                    }
                     DependencyDB.UnSubscribe(
-                    CommonTestsValues.MainServiceName,
-                    subscriberName,
-                    CommonTestsValues.SubscribedProcedureSchema,
-                    "P_TestGetProcedure",
-                    sqlParameters
-                    );
-
+                        CommonTestsValues.MainServiceName,
+                        subscriberName,
+                        CommonTestsValues.SubscribedProcedureSchema,
+                        "P_TestGetProcedure",
+                        sqlParameters
+                        );
                 });
 
             DependencyDB.StopListener(CommonTestsValues.MainServiceName);
@@ -212,7 +238,7 @@ namespace DBConnectionTests
         List<string> ParallelUnSubscribeSubscribeTest_Subscribers = new List<string>();
         private void ParallelUnSubscribeSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
         {
-            ParallelUnSubscribeSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
+            //ParallelUnSubscribeSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
         }
         [TestMethod]
         public void ParallelUnSubscribeSubscribeTest()
@@ -232,7 +258,7 @@ namespace DBConnectionTests
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
             DateTime validTill = (DateTime.Now).AddDays(5.0);
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < CountParallelInstances; i++)
             {
                 string subscriberName = "subscriber" + i;
                 ParallelUnSubscribeTest_Subscribers.Add(subscriberName);
@@ -240,39 +266,51 @@ namespace DBConnectionTests
             Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
                 (subscriberName) =>
                 {
-                    DependencyDB.Subscribe(
-                        CommonTestsValues.MainServiceName,
-                        subscriberName,
-                        CommonTestsValues.SubscribedProcedureSchema,
-                        "P_TestGetProcedure",
-                        sqlParameters,
-                        validTill
-                        );
+                    switch (subscriberName.GetHashCode() % 2)
+                    {
+                        case 1:
+                            accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
+                            break;
+                        default:
+                            DependencyDB.Subscribe(
+                                CommonTestsValues.MainServiceName,
+                                subscriberName,
+                                CommonTestsValues.SubscribedProcedureSchema,
+                                "P_TestGetProcedure",
+                                sqlParameters,
+                                validTill
+                                );
+                            break;
+                    }
                 });
 
             Parallel.ForEach(ParallelUnSubscribeTest_Subscribers,
                 (subscriberName) =>
                 {
-                    if (subscriberName.GetHashCode() % 2 == 0)
+                    switch (subscriberName.GetHashCode() % 3)
                     {
-                        DependencyDB.UnSubscribe(
-                            CommonTestsValues.MainServiceName,
-                            subscriberName,
-                            CommonTestsValues.SubscribedProcedureSchema,
-                            "P_TestGetProcedure",
-                            sqlParameters
-                            );
-                    }
-                    else
-                    {
-                        DependencyDB.Subscribe(
-                            CommonTestsValues.MainServiceName,
-                            subscriberName,
-                            CommonTestsValues.SubscribedProcedureSchema,
-                            "P_TestGetProcedure",
-                            sqlParameters,
-                            validTill
-                            );
+                        case 1:
+                            accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
+                            break;
+                        case 2:
+                            DependencyDB.UnSubscribe(
+                                CommonTestsValues.MainServiceName,
+                                subscriberName,
+                                CommonTestsValues.SubscribedProcedureSchema,
+                                "P_TestGetProcedure",
+                                sqlParameters
+                                );
+                            break;
+                        default:
+                            DependencyDB.Subscribe(
+                                CommonTestsValues.MainServiceName,
+                                subscriberName,
+                                CommonTestsValues.SubscribedProcedureSchema,
+                                "P_TestGetProcedure",
+                                sqlParameters,
+                                validTill
+                                );
+                            break;
                     }
                 });
 

@@ -110,6 +110,16 @@ namespace DBConnectionTests.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to SELECT *
+        ///FROM dbo.TBL_FirstTable.
+        /// </summary>
+        public static string SelectFromTable {
+            get {
+                return ResourceManager.GetString("SelectFromTable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 
         ///DECLARE @V_Cmd NVARCHAR(max);
         ///SET ANSI_NULLS ON

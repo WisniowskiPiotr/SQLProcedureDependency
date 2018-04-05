@@ -124,6 +124,9 @@
   <data name="AdminUnInstall_Test" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\AdminDependencyDBTests\AdminUnInstall_Test.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
   </data>
+  <data name="SelectFromTable" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\ParallelDependencyDBTests\SelectFromTable.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
+  </data>
   <data name="SetEmptyDB" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\SetDBState\SetEmptyDB.sql;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1250</value>
   </data>

@@ -62,7 +62,7 @@ namespace DBConnection
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (SqlException ex)
                 {
                     throw Helpers.ReportException(command, ex);
                 }
@@ -92,7 +92,7 @@ namespace DBConnection
                     command.Connection.Open();
                     command.ExecuteNonQuery();
                 }
-                catch (Exception ex)
+                catch (SqlException ex)
                 {
                     throw Helpers.ReportException(command, ex);
                 }

@@ -13,7 +13,7 @@ namespace DBConnection
         /// <param name="command"> SqlCommand which was executed when exception occures. </param>
         /// <param name="ex"> Inner exception which did occure. </param>
         /// <returns> Exception with additional data from SqlCommand. </returns>
-        public static Exception ReportException(SqlCommand command, Exception ex)
+        public static Exception ReportException(SqlCommand command, SqlException ex)
         {
             StringBuilder addInfo = new StringBuilder("Exception durng SQL command: ", 100);
             addInfo.Append(command.CommandText);

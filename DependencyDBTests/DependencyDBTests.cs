@@ -1,12 +1,12 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using DBConnection;
 using System.Data.SqlClient;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
+using SQLDependency.DBConnection;
 
-namespace DBConnectionTests
+namespace SQLDependency.DBConnectionTests
 {
     [TestClass]
     public class DependencyDBTests

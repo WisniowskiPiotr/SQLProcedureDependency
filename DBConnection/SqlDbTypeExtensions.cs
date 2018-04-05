@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     internal static class SqlDbTypeExtensions
     {

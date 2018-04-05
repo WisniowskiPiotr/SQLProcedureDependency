@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Data.SqlClient;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     public static class DependencyDB 
     {

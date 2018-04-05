@@ -169,12 +169,12 @@ BEGIN
 					WHILE @@FETCH_STATUS = 0 
 						BEGIN
 							BEGIN TRANSACTION 
-								SET @V_Cmd = '
+								SET @V_Cmd = N'
 									DECLARE @V_Dummy int
 									SELECT TOP 1 
 											@V_Dummy = 1 
-										FROM sys.triggers AS TBL_Triggers
-										WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
+										FROM ' + QUOTENAME( @V_TableSchemaName ) + '.' + QUOTENAME( @V_TableName ) + '
+										WITH ( TABLOCKX, HOLDLOCK ) ;
 									' ;
 								EXEC sp_executesql @V_Cmd ;
 								IF EXISTS (
@@ -193,17 +193,10 @@ BEGIN
 							SET @V_ReferencedTableType = 'TYPE_' + @V_MainName + '_' + @V_TableSchemaName + '_' + @V_TableName + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
 							
 							BEGIN TRANSACTION 
-								SET @V_Cmd = '
-									DECLARE @V_Dummy int
-									SELECT TOP 1 
-											@V_Dummy = 1 
-										FROM sys.types AS SysTypes
-										WITH (UPDLOCK, TABLOCKX, HOLDLOCK) ;
-									' ;
-								EXEC sp_executesql @V_Cmd ;
 								IF EXISTS (
 									SELECT SysTypes.name 
 									FROM sys.types AS SysTypes
+										WITH ( UPDLOCK, HOLDLOCK )
 									INNER JOIN sys.schemas AS SysSchemas
 										ON SysSchemas.schema_id = SysTypes.schema_id
 										AND QUOTENAME( SysSchemas.name ) = QUOTENAME( @V_SchemaName )

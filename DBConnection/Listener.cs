@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     internal class Listener : IDisposable
     {

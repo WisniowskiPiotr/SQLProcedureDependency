@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     public class NotificationData
     {

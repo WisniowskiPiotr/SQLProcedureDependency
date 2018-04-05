@@ -1,13 +1,10 @@
-﻿using System;
+﻿
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using DBConnection;
-using DBConnectionTests.Properties;
 using System.Data.SqlClient;
-using System.Collections.Generic;
-using Microsoft.SqlServer.Server;
 using System.Data;
+using SQLDependency.DBConnection;
 
-namespace DBConnectionTests
+namespace SQLDependency.DBConnectionTests
 {
     [TestClass]
     public class SubscriptionTests

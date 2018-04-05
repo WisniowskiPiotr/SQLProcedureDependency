@@ -1,5 +1,5 @@
 ﻿
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     /// <summary>
     /// Typical EventMessageTypes set from root node from xml notification message.

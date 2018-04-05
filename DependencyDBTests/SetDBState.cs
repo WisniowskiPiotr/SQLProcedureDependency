@@ -1,11 +1,11 @@
 ﻿using DBConnection;
 using DBConnectionTests.Properties;
-using System;
+using SQLDependency.DBConnection;
+using SQLDependency.DBConnection.Admin;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Text;
 
-namespace DBConnectionTests
+namespace SQLDependency.DBConnectionTests
 {
     static class SetDBState
     {

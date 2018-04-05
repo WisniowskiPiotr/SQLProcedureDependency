@@ -3,7 +3,7 @@ using System;
 using System.Data.SqlClient;
 using System.Text;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     internal static partial class Helpers
     {

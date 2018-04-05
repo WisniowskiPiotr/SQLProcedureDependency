@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     /// <summary>
     /// Class reprezenting generic DataBase connection.

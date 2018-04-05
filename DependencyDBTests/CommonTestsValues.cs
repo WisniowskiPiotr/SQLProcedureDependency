@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DBConnectionTests
+namespace SQLDependency.DBConnectionTests
 {
     static class CommonTestsValues
     {

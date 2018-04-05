@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     internal class SqlProcedures
     {

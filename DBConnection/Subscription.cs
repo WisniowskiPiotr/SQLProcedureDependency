@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     public class Subscription : IEquatable<Subscription>
     {

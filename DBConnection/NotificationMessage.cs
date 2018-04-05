@@ -7,7 +7,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection
 {
     public class NotificationMessage : Subscription
     {

@@ -3,7 +3,7 @@ using System;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace DBConnection
+namespace SQLDependency.DBConnection.Admin
 {
     /// <summary>
     /// Setups all neccesary Sql objects in DB. For details look to the .sql files. 

@@ -63,7 +63,7 @@ namespace SQLDependency.DBConnection
             else
                 throw new NullReferenceException("No DependencyDB.StartListener() invoked for current appName.");
         }
-        public static void UnSubscribe(string appName, string subscriberName, string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters = null, int notificationValidFor = 86400)
+        public static void UnSubscribe(string appName, string subscriberName="", string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters = null, int notificationValidFor = 86400)
         {
             Subscription subscription = new Subscription(
                     appName,

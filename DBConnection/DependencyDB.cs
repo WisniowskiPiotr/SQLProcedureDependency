@@ -61,7 +61,7 @@ namespace SQLDependency.DBConnection
                 listener.SqlProcedures.InstallSubscription(subscription);
             }
             else
-                throw new NullReferenceException("No DependencyDB.StartListener() invoked for current appName and connectionString combination.");
+                throw new NullReferenceException("No DependencyDB.StartListener() invoked for current appName.");
         }
         public static void UnSubscribe(string appName, string subscriberName, string procedureSchemaName="", string procedureName="", SqlParameterCollection procedureParameters = null, int notificationValidFor = 86400)
         {
@@ -84,7 +84,7 @@ namespace SQLDependency.DBConnection
                 listener.SqlProcedures.UninstallSubscription(subscription);
             }
             else
-                throw new NullReferenceException("No DependencyDB.StartListener() invoked for current appName and connectionString combination.");
+                throw new NullReferenceException("No DependencyDB.StartListener() invoked for current appName.");
         }
     }
 }

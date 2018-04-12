@@ -194,6 +194,15 @@ BEGIN
 			SET @V_ReferencedTableType = 'TYPE_' + @V_MainName + '_' + @V_ReferencedSchema + '_' + @V_ReferencedTable + '_' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) ;
 			
 			BEGIN TRANSACTION
+				SET @V_Cmd = N'
+					DECLARE @V_Dummy int
+					SELECT TOP 1 
+							@V_Dummy = 1 
+						FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS TBL_SubscribersTable
+						WITH ( TABLOCKX, HOLDLOCK ) ;
+					' ;
+				EXEC sp_executesql @V_Cmd ;
+
 				IF NOT EXISTS (
 					SELECT SysTypes.name 
 					FROM sys.types AS SysTypes
@@ -431,7 +440,6 @@ BEGIN
 			IF EXISTS (
 				SELECT [C_SubscriptionHash]
 				FROM ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME( @V_SubscribersTableName ) + ' AS TBL_SubscribersTable
-					WITH (UPDLOCK, HOLDLOCK)
 				WHERE [C_SubscriberString] = ''' + QUOTENAME( @V_SubscriberString ) + '''
 					AND [C_SubscriptionHash] = ' + CAST( @V_SubscriptionHash AS NVARCHAR(200)) + '
 					AND [C_ProcedureSchemaName] = ''' + QUOTENAME( @V_ProcedureSchemaName ) + '''

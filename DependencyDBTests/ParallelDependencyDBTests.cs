@@ -14,7 +14,7 @@ namespace SQLDependency.DBConnectionTests
     public class ParallelDependencyDBTests
     {
         AccessDB accesDB = new AccessDB(CommonTestsValues.AdminConnectionString);
-        int CountParallelInstances = 5000;
+        int CountParallelInstances = 1000;
         List<string> SingleChangeWithMultipleSubscribers_Subscribers = new List<string>();
         private void SingleChangeWithMultipleSubscribers_HandleMsg(string subscriber, NotificationMessage message)
         {
@@ -65,7 +65,7 @@ namespace SQLDependency.DBConnectionTests
 
             Task waitForResults = new Task(() =>
             {
-                while (SingleChangeWithMultipleSubscribers_Subscribers.Count >0)
+                while (SingleChangeWithMultipleSubscribers_Subscribers.Count > 0)
                 {
                     Thread.Sleep(100);
                 }
@@ -113,7 +113,7 @@ namespace SQLDependency.DBConnectionTests
                 ParallelSubscribeTest_Subscribers,
                 (subscriberName) =>
                 {
-                    switch ( subscriberName.GetHashCode() % 2 )
+                    switch (subscriberName.GetHashCode() % 2)
                     {
                         case 1:
                             accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));

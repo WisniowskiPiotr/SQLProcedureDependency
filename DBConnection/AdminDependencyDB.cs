@@ -1,7 +1,6 @@
 ﻿using SQLDependency.DBConnection.Properties;
 using System;
 using System.Data.SqlClient;
-using System.IO;
 using System.Linq;
 
 namespace SQLDependency.DBConnection.Admin
@@ -57,28 +56,7 @@ namespace SQLDependency.DBConnection.Admin
                 AdminGrantObservedShema(databaseName, mainServiceName, observedShema);
         }
 
-        public static void WriteAdminInstallScript(string path, string databaseName, string mainServiceName, string password, string observedShema = "dbo")
-        {
-            string cmd = "";
-            TestName(mainServiceName);
-
-            string instalProcedureText = Resources.P_InstallSubscription.Replace("'", "''");
-            string receiveProcedureText = Resources.P_ReceiveSubscription.Replace("'", "''");
-            string uninstalProcedureText = Resources.P_UninstallSubscription.Replace("'", "''");
-
-            cmd=string.Format(Resources.AdminInstall,
-                databaseName,
-                mainServiceName,
-                password,
-                instalProcedureText,
-                receiveProcedureText,
-                uninstalProcedureText) + Environment.NewLine + "GO;";
-            if (!string.IsNullOrWhiteSpace(observedShema))
-                cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
-
-            File.WriteAllText(path, cmd);
-        }
-
+        
         /// <summary>
         /// Allows or denies DependencyDB to observe data from diffrent shema. For details look to the AdminAddObservedShema.sql or AdminRemoveObservedShema.sql file.
         /// </summary>
@@ -91,25 +69,13 @@ namespace SQLDependency.DBConnection.Admin
             TestName(mainServiceName);
             RunFile(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema);
         }
-        public static void GetAdminGrantObservedShemaScript(string path, string databaseName, string mainServiceName, string observedShema)
-        {
-            TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
-            File.WriteAllText(path, cmd);
-        }
         public void AdminRevokeObservedShema(string databaseName, string mainServiceName, string observedShema)
         {
             // TODO: maybe it should be better to add provilages only to observed procedure and required tables?
             TestName(mainServiceName);
             RunFile(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema);
         }
-        public static void GetAdminRevokeObservedShemaScript(string path, string databaseName, string mainServiceName, string observedShema)
-        {
-            TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
-            File.WriteAllText(path, cmd);
-        }
-
+        
         /// <summary>
         /// Removes all objects created by AdminInstall method and DependencyDB with exception of AutoCreatedLocal route and disabling brooker setting as other things may depend on it.
         /// </summary>
@@ -120,12 +86,47 @@ namespace SQLDependency.DBConnection.Admin
 
             RunFile(Resources.AdminUninstall, databaseName, mainServiceName);
         }
-        public static void GetAdminUnInstallScript(string path, string databaseName, string mainServiceName)
+        
+        public static string GetAdminInstallScript( string databaseName, string mainServiceName, string password, string observedShema = "dbo")
+        {
+            string cmd = "";
+            TestName(mainServiceName);
+
+            string instalProcedureText = Resources.P_InstallSubscription.Replace("'", "''");
+            string receiveProcedureText = Resources.P_ReceiveSubscription.Replace("'", "''");
+            string uninstalProcedureText = Resources.P_UninstallSubscription.Replace("'", "''");
+
+            cmd = string.Format(Resources.AdminInstall,
+                databaseName,
+                mainServiceName,
+                password,
+                instalProcedureText,
+                receiveProcedureText,
+                uninstalProcedureText) + Environment.NewLine + "GO;";
+            if (!string.IsNullOrWhiteSpace(observedShema))
+                cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+
+            return cmd;
+        }
+        public static string GetAdminGrantObservedShemaScript( string databaseName, string mainServiceName, string observedShema)
+        {
+            TestName(mainServiceName);
+            string cmd = string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+            return cmd;
+        }
+        public static string GetAdminRevokeObservedShemaScript( string databaseName, string mainServiceName, string observedShema)
+        {
+            TestName(mainServiceName);
+            string cmd = string.Format(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+            return cmd;
+        }
+        public static string GetAdminUnInstallScript( string databaseName, string mainServiceName)
         {
             TestName(mainServiceName);
             string cmd = string.Format(Resources.AdminUninstall, databaseName, mainServiceName) + Environment.NewLine + "GO;";
-            File.WriteAllText(path, cmd);
+            return cmd;
         }
+
 
         /// <summary>
         /// Tests privided mainServiceName if it is capable to create sql objects with it.

@@ -202,6 +202,40 @@ IF NOT EXISTS(
 		EXEC ( @V_Cmd );
 	END
 
+-- create uninstall subscription procedure
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<0>', @V_DBName);
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<1>', @V_MainName);
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<2>', @V_LoginName);
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<3>', @V_SchemaName);
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<4>', @V_UserName);
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<5>', @V_QueueName);
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<6>', @V_ServiceName);
+SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<7>', @V_SubscribersTableName);
+
+DECLARE @V_UninstallProcedureName SYSNAME = 'P_UninstallSubscription';
+IF EXISTS (
+	SELECT [SysProcedures].[name]
+	FROM sys.procedures AS [SysProcedures]
+	INNER JOIN sys.schemas AS [SysSchemas]
+		ON [SysSchemas].[schema_id] = [SysProcedures].[schema_id]
+		AND QUOTENAME( [SysSchemas].[name] ) = QUOTENAME( @V_SchemaName )
+	WHERE QUOTENAME( [SysProcedures].[name] ) = QUOTENAME( @V_UninstallProcedureName )
+)
+	BEGIN
+		SET @V_Cmd = '
+			ALTER PROCEDURE ' + QUOTENAME( @V_SchemaName ) + '.' +  QUOTENAME( @V_UninstallProcedureName ) + '
+			--' + @V_UninstallSubscriptionProcedureBody + '
+		' ;
+	END
+ELSE
+	BEGIN
+		SET @V_Cmd = '
+			CREATE PROCEDURE ' + QUOTENAME( @V_SchemaName ) + '.' +  QUOTENAME( @V_UninstallProcedureName ) + '
+			--' + @V_UninstallSubscriptionProcedureBody + '
+		' ;
+	END
+EXEC ( @V_Cmd );
+
 -- create install subscription procedure
 SET @V_InstallSubscriptionProcedureBody = REPLACE( @V_InstallSubscriptionProcedureBody , '<0>', @V_DBName);
 SET @V_InstallSubscriptionProcedureBody = REPLACE( @V_InstallSubscriptionProcedureBody , '<1>', @V_MainName);
@@ -266,40 +300,6 @@ ELSE
 		SET @V_Cmd = '
 			CREATE PROCEDURE ' + QUOTENAME( @V_SchemaName ) + '.' +  QUOTENAME( @V_ReceiveProcedureName ) + '
 			--' + @V_ReceiveSubscriptionProcedureBody  + '
-		' ;
-	END
-EXEC ( @V_Cmd );
-
--- create uninstall subscription procedure
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<0>', @V_DBName);
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<1>', @V_MainName);
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<2>', @V_LoginName);
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<3>', @V_SchemaName);
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<4>', @V_UserName);
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<5>', @V_QueueName);
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<6>', @V_ServiceName);
-SET @V_UninstallSubscriptionProcedureBody = REPLACE( @V_UninstallSubscriptionProcedureBody , '<7>', @V_SubscribersTableName);
-
-DECLARE @V_UninstallProcedureName SYSNAME = 'P_UninstallSubscription';
-IF EXISTS (
-	SELECT [SysProcedures].[name]
-	FROM sys.procedures AS [SysProcedures]
-	INNER JOIN sys.schemas AS [SysSchemas]
-		ON [SysSchemas].[schema_id] = [SysProcedures].[schema_id]
-		AND QUOTENAME( [SysSchemas].[name] ) = QUOTENAME( @V_SchemaName )
-	WHERE QUOTENAME( [SysProcedures].[name] ) = QUOTENAME( @V_UninstallProcedureName )
-)
-	BEGIN
-		SET @V_Cmd = '
-			ALTER PROCEDURE ' + QUOTENAME( @V_SchemaName ) + '.' +  QUOTENAME( @V_UninstallProcedureName ) + '
-			--' + @V_UninstallSubscriptionProcedureBody + '
-		' ;
-	END
-ELSE
-	BEGIN
-		SET @V_Cmd = '
-			CREATE PROCEDURE ' + QUOTENAME( @V_SchemaName ) + '.' +  QUOTENAME( @V_UninstallProcedureName ) + '
-			--' + @V_UninstallSubscriptionProcedureBody + '
 		' ;
 	END
 EXEC ( @V_Cmd );

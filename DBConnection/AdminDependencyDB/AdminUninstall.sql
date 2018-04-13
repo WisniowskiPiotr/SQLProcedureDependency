@@ -20,6 +20,18 @@ DECLARE @V_UninstallProcedureName SYSNAME = 'P_UninstallSubscription';
 USE [{0}];
 
 -- drop all triggers
+IF EXISTS (
+	SELECT [SysProcedures].[name]
+	FROM sys.procedures AS [SysProcedures]
+	INNER JOIN sys.schemas AS [SysSchemas]
+		ON [SysSchemas].[schema_id] = [SysProcedures].[schema_id]
+		AND QUOTENAME( [SysSchemas].[name] ) = QUOTENAME( @V_SchemaName )
+	WHERE QUOTENAME( [SysProcedures].[name] ) = QUOTENAME( @V_UninstallProcedureName )
+)
+	BEGIN
+		--DECLARE @TBL_EmptyProcedureParameters dbo.TYPE_ParametersType;
+		EXEC [{1}].[P_UninstallSubscription] @V_SubscriberString = NULL, @V_SubscriptionHash = NULL; --, @TBL_ProcedureParameters = @TBL_EmptyProcedureParameters 
+	END	
 
 -- drop uninstall subscription procedure
 IF EXISTS (

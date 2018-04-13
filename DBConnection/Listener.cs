@@ -54,9 +54,9 @@ namespace SQLDependency.DBConnection
             {
                 listenerJob=Task.Factory.StartNew(
                     NotificationLoop,
-                    _LisenerCancellationTokenSource.Token, 
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default
+                    _LisenerCancellationTokenSource.Token//, 
+                    //TaskCreationOptions.LongRunning,
+                    //TaskScheduler.Default
                     );
             }
             catch (TaskCanceledException)

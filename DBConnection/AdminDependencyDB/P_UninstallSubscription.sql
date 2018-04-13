@@ -15,8 +15,6 @@ BEGIN
 
 	IF( LEN( @V_SubscriberString ) = 0 )
 		SET @V_SubscriberString = null;
-	IF( @V_SubscriptionHash = 0 )
-		SET @V_SubscriptionHash = null;
 	IF( LEN( @V_ProcedureSchemaName ) = 0 )
 		SET @V_ProcedureSchemaName = null;
 	IF( LEN( @V_ProcedureName ) = 0 )
@@ -106,13 +104,15 @@ BEGIN
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
 			TBL_SubscribersToBeRemoved.C_TriggerNames,
 			TBL_SubscribersToBeRemoved.C_DeleteTrigger,
-			TBL_SubscribersToBeRemoved.C_ValidTill
+			TBL_SubscribersToBeRemoved.C_ValidTill,
+			TBL_SubscribersToBeRemoved.C_SubscriptionHash
 		FROM @TBL_SubscribersToBeRemoved AS TBL_SubscribersToBeRemoved
 		GROUP BY TBL_SubscribersToBeRemoved.C_SubscriberString,
 			TBL_SubscribersToBeRemoved.C_ProcedureParameters,
 			TBL_SubscribersToBeRemoved.C_TriggerNames,
 			TBL_SubscribersToBeRemoved.C_DeleteTrigger,
-			TBL_SubscribersToBeRemoved.C_ValidTill;
+			TBL_SubscribersToBeRemoved.C_ValidTill,
+			TBL_SubscribersToBeRemoved.C_SubscriptionHash;
 
 	OPEN CU_SubscribersToBeRemovedCursor ;
 	FETCH NEXT FROM CU_SubscribersToBeRemovedCursor 
@@ -120,7 +120,8 @@ BEGIN
 			@V_ProcedureParameters, 
 			@V_TriggerNames,
 			@V_RemoveTriggers,
-			@V_ValidTill;
+			@V_ValidTill,
+			@V_SubscriptionHash;
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 			-- Notify subscriber
@@ -226,7 +227,8 @@ BEGIN
 					@V_ProcedureParameters, 
 					@V_TriggerNames,
 					@V_RemoveTriggers,
-					@V_ValidTill ;
+					@V_ValidTill,
+					@V_SubscriptionHash;
 		END
 	CLOSE CU_SubscribersToBeRemovedCursor ;
 	DEALLOCATE CU_SubscribersToBeRemovedCursor ;

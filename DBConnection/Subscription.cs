@@ -53,6 +53,19 @@ namespace SQLDependency.DBConnection
             return result;
         }
 
+        public bool CanBeInstalled()
+        {
+            if (!string.IsNullOrWhiteSpace(MainServiceName) &&
+                !string.IsNullOrWhiteSpace(SubscriberString) &&
+                !string.IsNullOrWhiteSpace(ProcedureSchemaName) &&
+                !string.IsNullOrWhiteSpace(ProcedureName) &&
+                ProcedureParameters != null &&
+                ValidFor > 0)
+                return true;
+            else
+                return false;
+        }
+
         /// <summary>
         /// Compares this subscriprion with provided object. Returns true only if procedureName and procedureParameters are the same.
         /// </summary>

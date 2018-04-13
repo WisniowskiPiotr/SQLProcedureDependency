@@ -165,6 +165,10 @@ namespace SQLDependency.DBConnection
                 throw new ArgumentNullException(parameterName);
             if (parameterName[0] != '@')
                 parameterName = "@" + parameterName;
+            if (value == null)
+            {
+                value = DBNull.Value;
+            }
             SqlParameter sqlParameter = new SqlParameter(parameterName, paramType)
             {
                 Value = value

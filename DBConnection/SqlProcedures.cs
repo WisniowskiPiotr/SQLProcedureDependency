@@ -25,6 +25,10 @@ namespace SQLDependency.DBConnection
 
         public void InstallSubscription(Subscription subscription)
         {
+            if (!subscription.CanBeInstalled())
+            {
+                throw new ArgumentException(subscription.GetHashText() + " subscription cannot be installed, as not enougth data provided. ");
+            }
             string schemaName = "[" + subscription.MainServiceName + "]";
             SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameInstall);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriberString", SqlDbType.NVarChar, subscription.SubscriberString));
@@ -50,7 +54,7 @@ namespace SQLDependency.DBConnection
             string schemaName = "[" + subscription.MainServiceName + "]";
             SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameUninstall);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriberString", SqlDbType.NVarChar, subscription.SubscriberString));
-            command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriptionHash", SqlDbType.Int, subscription.GetHashCode()));
+            command.Parameters.Add(AccessDB.CreateSqlParameter("V_SubscriptionHash", SqlDbType.Int, subscription.CanBeInstalled() ? (object)subscription.GetHashCode() : null));
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ProcedureSchemaName", SqlDbType.NVarChar, subscription.ProcedureSchemaName));
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ProcedureName", SqlDbType.NVarChar, subscription.ProcedureName));
             command.Parameters.Add(AccessDB.CreateSqlParameter("TBL_ProcedureParameters", SqlDbType.Structured, SqlParameterCollectionToDataTable(subscription.ProcedureParameters)));

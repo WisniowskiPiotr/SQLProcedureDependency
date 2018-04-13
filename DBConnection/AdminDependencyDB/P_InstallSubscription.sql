@@ -217,7 +217,19 @@ BEGIN
 				)
 				BEGIN
 					SET @V_ReferencedTableTypeDefinition = (
-						SELECT ', ' + QUOTENAME( COLUMN_NAME ) + ' ' + QUOTENAME( DATA_TYPE ) + ' ' + ISNULL( '(' + CAST( CASE WHEN CHARACTER_MAXIMUM_LENGTH > 0 THEN CHARACTER_MAXIMUM_LENGTH ELSE NULL END AS SYSNAME) + ') NULL' , ' NULL' ) 
+						SELECT ', ' + QUOTENAME( COLUMN_NAME ) + 
+							' ' + QUOTENAME( DATA_TYPE ) + 
+							' ' +  
+								CASE WHEN CHARACTER_MAXIMUM_LENGTH IS NULL
+								THEN ''
+								ELSE 
+									CASE WHEN CHARACTER_MAXIMUM_LENGTH > 0
+									THEN '(' + CAST( CHARACTER_MAXIMUM_LENGTH AS SYSNAME) + ')' 
+									ELSE 
+										'(MAX)'
+									END
+								END
+								 + ' NULL'
 						FROM INFORMATION_SCHEMA.COLUMNS
 						WHERE TABLE_NAME = @V_ReferencedTable
 							AND TABLE_SCHEMA = @V_ReferencedSchema

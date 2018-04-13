@@ -1,6 +1,7 @@
 ﻿using SQLDependency.DBConnection.Properties;
 using System;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 
 namespace SQLDependency.DBConnection.Admin
@@ -36,7 +37,7 @@ namespace SQLDependency.DBConnection.Admin
         /// <param name="password"> Password used for newly created DependencyDB login. </param>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
         /// <param name="observedShema"> Shema name which can be observed by DependencyDB. </param>
-        public void AdminInstall( string databaseName, string mainServiceName, string password, string observedShema="dbo")
+        public void AdminInstall( string databaseName, string mainServiceName, string password, string observedShema = "dbo")
         {
             TestName(mainServiceName);
 
@@ -52,7 +53,30 @@ namespace SQLDependency.DBConnection.Admin
                 receiveProcedureText, 
                 uninstalProcedureText);
 
-            AdminGrantObservedShema(databaseName, mainServiceName, observedShema);
+            if(!string.IsNullOrWhiteSpace(observedShema))
+                AdminGrantObservedShema(databaseName, mainServiceName, observedShema);
+        }
+
+        public static void WriteAdminInstallScript(string path, string databaseName, string mainServiceName, string password, string observedShema = "dbo")
+        {
+            string cmd = "";
+            TestName(mainServiceName);
+
+            string instalProcedureText = Resources.P_InstallSubscription.Replace("'", "''");
+            string receiveProcedureText = Resources.P_ReceiveSubscription.Replace("'", "''");
+            string uninstalProcedureText = Resources.P_UninstallSubscription.Replace("'", "''");
+
+            cmd=string.Format(Resources.AdminInstall,
+                databaseName,
+                mainServiceName,
+                password,
+                instalProcedureText,
+                receiveProcedureText,
+                uninstalProcedureText) + Environment.NewLine + "GO;";
+            if (!string.IsNullOrWhiteSpace(observedShema))
+                cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+
+            File.WriteAllText(path, cmd);
         }
 
         /// <summary>
@@ -67,11 +91,23 @@ namespace SQLDependency.DBConnection.Admin
             TestName(mainServiceName);
             RunFile(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema);
         }
+        public static void GetAdminGrantObservedShemaScript(string path, string databaseName, string mainServiceName, string observedShema)
+        {
+            TestName(mainServiceName);
+            string cmd = string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+            File.WriteAllText(path, cmd);
+        }
         public void AdminRevokeObservedShema(string databaseName, string mainServiceName, string observedShema)
         {
             // TODO: maybe it should be better to add provilages only to observed procedure and required tables?
             TestName(mainServiceName);
             RunFile(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema);
+        }
+        public static void GetAdminRevokeObservedShemaScript(string path, string databaseName, string mainServiceName, string observedShema)
+        {
+            TestName(mainServiceName);
+            string cmd = string.Format(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+            File.WriteAllText(path, cmd);
         }
 
         /// <summary>
@@ -82,15 +118,20 @@ namespace SQLDependency.DBConnection.Admin
         {
             TestName(mainServiceName);
 
-
             RunFile(Resources.AdminUninstall, databaseName, mainServiceName);
+        }
+        public static void GetAdminUnInstallScript(string path, string databaseName, string mainServiceName)
+        {
+            TestName(mainServiceName);
+            string cmd = string.Format(Resources.AdminUninstall, databaseName, mainServiceName) + Environment.NewLine + "GO;";
+            File.WriteAllText(path, cmd);
         }
 
         /// <summary>
         /// Tests privided mainServiceName if it is capable to create sql objects with it.
         /// </summary>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
-        private void TestName(string mainServiceName)
+        private static void TestName(string mainServiceName)
         {
             const int maxNameLength = 128 - 46;
             const int minNameLength = 4;

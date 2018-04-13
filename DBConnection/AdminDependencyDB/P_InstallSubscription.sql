@@ -24,7 +24,8 @@ BEGIN
 
 	DECLARE @V_ExceptionMessage NVARCHAR(max);
 
-	EXEC [<3>].[P_UninstallSubscription] 'OutDatedSubscribers',0 -- remove outdated notifications.
+	DECLARE @TBL_EmptyProcedureParameters dbo.TYPE_ParametersType;
+	EXEC [<3>].[P_UninstallSubscription] @V_SubscriberString = 'OutDatedSubscribers', @V_SubscriptionHash = 0 , @TBL_ProcedureParameters = @TBL_EmptyProcedureParameters -- remove outdated notifications.
 	
 	DECLARE @V_ProcedureParametersList NVARCHAR(max) ;
 	SET @V_ProcedureParametersList = ISNULL(

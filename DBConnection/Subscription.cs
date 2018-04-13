@@ -44,15 +44,13 @@ namespace SQLDependency.DBConnection
 
         public override int GetHashCode()
         {
-            var mystring = this.GetHashText();
-            MD5 md5Hasher = MD5.Create();
-            var hashed = md5Hasher.ComputeHash(Encoding.Unicode.GetBytes(mystring));
-            int hash = BitConverter.ToInt32(hashed, 0);
-            
-            if (hash < 0)
-                return -hash;
-            else
-                return hash;
+            char[] mystring = GetHashText().ToCharArray();
+            int result = int.MinValue;
+            for (int i = 0; i < mystring.Length; i++)
+            {
+                result = unchecked(result + ((int)mystring[i] * 617 * i));
+            }
+            return result;
         }
 
         /// <summary>

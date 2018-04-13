@@ -16,9 +16,9 @@ namespace SQLDependency.DBConnectionTests
         AccessDB accesDB = new AccessDB(CommonTestsValues.AdminConnectionString);
         int CountParallelInstances = 1000;
         List<string> SingleChangeWithMultipleSubscribers_Subscribers = new List<string>();
-        private void SingleChangeWithMultipleSubscribers_HandleMsg(string subscriber, NotificationMessage message)
+        private void SingleChangeWithMultipleSubscribers_HandleMsg( NotificationMessage message)
         {
-            SingleChangeWithMultipleSubscribers_Subscribers.RemoveAll(x => x == subscriber);
+            SingleChangeWithMultipleSubscribers_Subscribers.RemoveAll(x => x == message.SubscriberString);
         }
         [TestMethod]
         public void SingleChangeWithMultipleSubscribers()
@@ -82,9 +82,9 @@ namespace SQLDependency.DBConnectionTests
         }
 
         List<string> ParallelSubscribeTest_Subscribers = new List<string>();
-        private void ParallelSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
+        private void ParallelSubscribeTest_HandleMsg( NotificationMessage message)
         {
-            ParallelSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
+            ParallelSubscribeTest_Subscribers.RemoveAll(x => x == message.SubscriberString);
         }
         [TestMethod]
         public void ParallelSubscribeTest()
@@ -162,7 +162,7 @@ namespace SQLDependency.DBConnectionTests
         }
 
         List<string> ParallelUnSubscribeTest_Subscribers = new List<string>();
-        private void ParallelUnSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
+        private void ParallelUnSubscribeTest_HandleMsg( NotificationMessage message)
         {
             //ParallelUnSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
         }
@@ -236,7 +236,7 @@ namespace SQLDependency.DBConnectionTests
         }
 
         List<string> ParallelUnSubscribeSubscribeTest_Subscribers = new List<string>();
-        private void ParallelUnSubscribeSubscribeTest_HandleMsg(string subscriber, NotificationMessage message)
+        private void ParallelUnSubscribeSubscribeTest_HandleMsg( NotificationMessage message)
         {
             //ParallelUnSubscribeSubscribeTest_Subscribers.RemoveAll(x => x == subscriber);
         }

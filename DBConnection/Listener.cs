@@ -54,9 +54,9 @@ namespace SQLDependency.DBConnection
             {
                 listenerJob=Task.Factory.StartNew(
                     NotificationLoop,
-                    _LisenerCancellationTokenSource.Token//, 
-                    //TaskCreationOptions.LongRunning,
-                    //TaskScheduler.Default
+                    _LisenerCancellationTokenSource.Token, 
+                    TaskCreationOptions.LongRunning,
+                    TaskScheduler.Default
                     );
             }
             catch (TaskCanceledException)
@@ -91,13 +91,34 @@ namespace SQLDependency.DBConnection
                 List<NotificationMessage> messages = SqlProcedures.ReceiveSubscription(AppName);
                 foreach (NotificationMessage message in messages)
                 {
-                    switch (message.MessageType)
+                    try
                     {
-                        case NotificationMessageType.Error:
-                            ErrorMessageHandler.Invoke(message.SubscriberString, message);
-                            break;
+                        switch (message.MessageType)
+                        {
+                            case NotificationMessageType.Error:
+                                ErrorMessageHandler.Invoke(message);
+                                break;
+                            case NotificationMessageType.NotImplementedType:
+                                ErrorMessageHandler.Invoke(message);
+                                break;
+                            case NotificationMessageType.Unsubscribed:
+                                UnsubscribedMessageHandler.Invoke(message);
+                                break;
+                            default:
+                                MessageHandler.Invoke(message);
+                                break;
+                        }
                     }
-                    MessageHandler.Invoke(message.SubscriberString, message);
+                    catch (Exception ex)
+                    {
+                        try
+                        {
+                            message.AddError(ex);
+                            ErrorMessageHandler.Invoke(message);
+                        }
+                        catch (Exception)
+                        { }
+                    }
                 }
             }
         }
@@ -109,9 +130,9 @@ namespace SQLDependency.DBConnection
         public bool IsListening()
         {
             if (_LisenerCancellationTokenSource != null
-                && !_LisenerCancellationTokenSource.IsCancellationRequested
-                && listenerJob !=null
-                && listenerJob.Status == TaskStatus.Running)
+                && !_LisenerCancellationTokenSource.IsCancellationRequested )
+                //&& listenerJob !=null
+                //&& listenerJob.Status == TaskStatus.Running)
                 return true;
             else
                 return false;

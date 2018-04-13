@@ -16,7 +16,7 @@ namespace SQLDependency.DBConnectionTests
         AccessDB serviceAccessDBAdmin = new AccessDB(CommonTestsValues.AdminConnectionString);
         NotificationMessage Message = null;
 
-        private void HandleMsg(string subscriber, NotificationMessage message)
+        private void HandleMsg( NotificationMessage message)
         {
             Message = message;
         }

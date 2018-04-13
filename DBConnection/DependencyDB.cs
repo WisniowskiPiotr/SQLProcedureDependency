@@ -6,7 +6,7 @@ namespace SQLDependency.DBConnection
 {
     public static class DependencyDB 
     {
-        public delegate void HandleMessage(string subscriberString, NotificationMessage message);
+        public delegate void HandleMessage( NotificationMessage message);
 
         private static ConcurrentDictionary<string,Listener> Listeners = new ConcurrentDictionary<string, Listener>();
         public static void StartListener(string appName, string connectionString, HandleMessage messageHandler, HandleMessage unsubscribedMessageHandler = null, HandleMessage errorMessageHandler = null)

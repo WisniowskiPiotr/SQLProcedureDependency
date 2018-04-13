@@ -11,17 +11,14 @@ namespace SQLDependency.DBConnectionTests
     [TestClass]
     public class DependencyDBTests
     {
-        string Subscriber;
         NotificationMessage Message;
-        private void HandleMsg(string subscriber, NotificationMessage message)
+        private void HandleMsg( NotificationMessage message)
         {
-            Subscriber = subscriber;
             Message = message;
         }
 
         public DependencyDBTests()
         {
-            Subscriber = null;
             Message = null;
         }
 

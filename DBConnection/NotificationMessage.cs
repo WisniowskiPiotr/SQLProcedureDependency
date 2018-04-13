@@ -20,10 +20,10 @@ namespace SQLDependency.DBConnection
         /// Message parsed XDocument.
         /// </summary>
         public XDocument Message { get; }
-        public NotificationMessageError Error { get; }
+        public NotificationMessageError Error { get; private set; }
         public NotificationData Inserted { get; }
         public NotificationData Deleted { get; }
-        public NotificationMessageType MessageType { get; } = NotificationMessageType.NotImplementedType;
+        public NotificationMessageType MessageType { get; private set; } = NotificationMessageType.NotImplementedType;
 
         /// <summary>
         /// Public constructor for creating instance from Message string. Message string should be Xml with proper structure.
@@ -73,7 +73,6 @@ namespace SQLDependency.DBConnection
             }
             base.ProcedureParameters = ProcedureCmd.Parameters;
         }
-        
         /// <summary>
         /// Overrides system ToString method to return Raw nessage string.
         /// </summary>
@@ -81,6 +80,13 @@ namespace SQLDependency.DBConnection
         public override string ToString()
         {
             return MessageString;
+        }
+
+        public void AddError(Exception ex)
+        {
+            string error = "<error><number>" + ex.HResult +"</number><severity>99</severity><state>1</state><procedure>ListenerReciveSubscriptions</procedure><linenb></linenb><message>" + ex.Message + "</message></error>";
+            Error = new NotificationMessageError(error);
+            MessageType = NotificationMessageType.Error;
         }
     }
 }

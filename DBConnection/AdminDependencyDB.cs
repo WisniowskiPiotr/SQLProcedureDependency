@@ -102,28 +102,28 @@ namespace SQLDependency.DBConnection.Admin
                 password,
                 instalProcedureText,
                 receiveProcedureText,
-                uninstalProcedureText) + Environment.NewLine + "GO;";
+                uninstalProcedureText) + Environment.NewLine + "GO";
             if (!string.IsNullOrWhiteSpace(observedShema))
-                cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+                cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO";
 
             return cmd;
         }
         public static string GetAdminGrantObservedShemaScript( string databaseName, string mainServiceName, string observedShema)
         {
             TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+            string cmd = string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO";
             return cmd;
         }
         public static string GetAdminRevokeObservedShemaScript( string databaseName, string mainServiceName, string observedShema)
         {
             TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO;";
+            string cmd = string.Format(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO";
             return cmd;
         }
         public static string GetAdminUnInstallScript( string databaseName, string mainServiceName)
         {
             TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminUninstall, databaseName, mainServiceName) + Environment.NewLine + "GO;";
+            string cmd = string.Format(Resources.AdminUninstall, databaseName, mainServiceName) + Environment.NewLine + "GO";
             return cmd;
         }
 

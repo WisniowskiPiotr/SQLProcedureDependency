@@ -20,7 +20,7 @@ namespace SQLDependency.DBConnection
         /// <summary>
         /// Instance used 
         /// </summary>
-        public SqlProcedures SqlProcedures { get; }
+        internal SqlProcedures SqlProcedures { get; }
         public string AppName { get; }
 
         /// <summary>

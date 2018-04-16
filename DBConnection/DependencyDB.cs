@@ -8,7 +8,7 @@ namespace SQLDependency.DBConnection
     {
         public delegate void HandleMessage( NotificationMessage message);
 
-        private static ConcurrentDictionary<string,Listener> Listeners = new ConcurrentDictionary<string, Listener>();
+        private static ConcurrentDictionary<string, Listener> Listeners { get; } = new ConcurrentDictionary<string, Listener>();
         public static void StartListener(string appName, string connectionString, HandleMessage messageHandler, HandleMessage unsubscribedMessageHandler = null, HandleMessage errorMessageHandler = null)
         {
             string key = appName;

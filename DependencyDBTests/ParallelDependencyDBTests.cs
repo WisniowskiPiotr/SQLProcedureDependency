@@ -169,7 +169,6 @@ namespace SQLDependency.DBConnectionTests
         [TestMethod]
         public void ParallelUnSubscribeTest()
         {
-
             ParallelUnSubscribeTest_Subscribers = new List<string>();
             SetDBState.SetAdminInstalledDB(
                 CommonTestsValues.DefaultTestDBName,

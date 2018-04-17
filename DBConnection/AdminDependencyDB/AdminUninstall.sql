@@ -5,7 +5,7 @@ SET QUOTED_IDENTIFIER ON
 
 DECLARE @V_DBName SYSNAME = '{0}' ;
 DECLARE @V_MainName SYSNAME = '{1}' ;
-DECLARE @V_LoginName SYSNAME = @V_MainName ;
+DECLARE @V_LoginName SYSNAME = '{2}' ;
 DECLARE @V_SchemaName SYSNAME = @V_MainName ;
 DECLARE @V_UserName SYSNAME = @V_MainName ;
 DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName ;

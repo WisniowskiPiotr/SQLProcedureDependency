@@ -9,8 +9,8 @@ namespace SQLDependency.DBConnectionTests
     static class CommonTestsValues
     {
         public static string DefaultTestDBName = "DependencyDBTestDB";
-        public static string MainServiceName = "DependencyDB";
-        public static string LoginName = MainServiceName;
+        public static string MainServiceName = "DependencyDBservice";
+        public static string LoginName = "DependencyDB";
         public static string LoginPass = "testPass";
         public static string SchemaName = MainServiceName;
         public static string Username = MainServiceName;

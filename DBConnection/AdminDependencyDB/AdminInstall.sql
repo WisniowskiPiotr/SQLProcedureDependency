@@ -9,6 +9,7 @@ DECLARE @V_Password NVARCHAR(max) = '{2}' ;
 DECLARE @V_InstallSubscriptionProcedureBody NVARCHAR(max) = '{3}';
 DECLARE @V_ReceiveSubscriptionProcedureBody NVARCHAR(max) = '{4}';
 DECLARE @V_UninstallSubscriptionProcedureBody NVARCHAR(max) = '{5}';
+DECLARE @V_LoginName SYSNAME = '{6}' ;
 
 -- switch to DB
 USE [{0}];
@@ -68,7 +69,7 @@ IF NOT EXISTS (
 	END
 
 -- create or recreate login
-DECLARE @V_LoginName SYSNAME = @V_MainName ;
+--DECLARE @V_LoginName SYSNAME = @V_MainName ;
 BEGIN TRANSACTION
 	IF EXISTS (
 		SELECT [server_principals].[name]
@@ -106,7 +107,7 @@ IF NOT EXISTS (
 	END
 
 -- create user
-DECLARE @V_UserName SYSNAME = @V_MainName;
+DECLARE @V_UserName SYSNAME = @V_LoginName;
 IF NOT EXISTS (
 	SELECT [database_principals].[name]
 	FROM sys.database_principals AS [database_principals]

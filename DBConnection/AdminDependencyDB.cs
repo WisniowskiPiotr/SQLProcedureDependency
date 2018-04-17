@@ -36,9 +36,13 @@ namespace SQLDependency.DBConnection.Admin
         /// <param name="password"> Password used for newly created DependencyDB login. </param>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
         /// <param name="observedShema"> Shema name which can be observed by DependencyDB. </param>
-        public void AdminInstall( string databaseName, string mainServiceName, string password, string observedShema = "dbo")
+        public void AdminInstall( string databaseName, string mainServiceName, string password, string loginName = "", string observedShema = "dbo")
         {
             TestName(mainServiceName);
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
 
             string instalProcedureText = Resources.P_InstallSubscription.Replace("'","''");
             string receiveProcedureText = Resources.P_ReceiveSubscription.Replace("'", "''");
@@ -50,10 +54,11 @@ namespace SQLDependency.DBConnection.Admin
                 password, 
                 instalProcedureText, 
                 receiveProcedureText, 
-                uninstalProcedureText);
+                uninstalProcedureText,
+                loginName);
 
             if(!string.IsNullOrWhiteSpace(observedShema))
-                AdminGrantObservedShema(databaseName, mainServiceName, observedShema);
+                AdminGrantObservedShema(databaseName, mainServiceName, observedShema, loginName);
         }
 
         
@@ -63,34 +68,51 @@ namespace SQLDependency.DBConnection.Admin
         /// <param name="observedShema"> Name of observed shema. </param>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
         /// <param name="allow"> If true grants provilages. Othervise revoke provilages. </param>
-        public void AdminGrantObservedShema(string databaseName, string mainServiceName, string observedShema)
+        public void AdminGrantObservedShema(string databaseName, string mainServiceName, string observedShema, string loginName = "")
         {
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
             // TODO: maybe it should be better to add provilages only to observed procedure and required tables?
             TestName(mainServiceName);
-            RunFile(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema);
+            RunFile(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema, loginName);
         }
-        public void AdminRevokeObservedShema(string databaseName, string mainServiceName, string observedShema)
+        public void AdminRevokeObservedShema(string databaseName, string mainServiceName, string observedShema, string loginName = "")
         {
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
             // TODO: maybe it should be better to add provilages only to observed procedure and required tables?
             TestName(mainServiceName);
-            RunFile(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema);
+            RunFile(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema, loginName);
         }
         
         /// <summary>
         /// Removes all objects created by AdminInstall method and DependencyDB with exception of AutoCreatedLocal route and disabling brooker setting as other things may depend on it.
         /// </summary>
         /// <param name="mainServiceName"> Main name for naming Sql objects. </param>
-        public void AdminUnInstall(string databaseName, string mainServiceName)
+        public void AdminUnInstall(string databaseName, string mainServiceName, string loginName = "")
         {
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
             TestName(mainServiceName);
 
-            RunFile(Resources.AdminUninstall, databaseName, mainServiceName);
+            RunFile(Resources.AdminUninstall, databaseName, mainServiceName, loginName);
         }
         
-        public static string GetAdminInstallScript( string databaseName, string mainServiceName, string password, string observedShema = "dbo")
+        public static string GetAdminInstallScript( string databaseName, string mainServiceName, string password, string loginName = "", string observedShema = "dbo")
         {
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
             string cmd = "";
             TestName(mainServiceName);
+            
 
             string instalProcedureText = Resources.P_InstallSubscription.Replace("'", "''");
             string receiveProcedureText = Resources.P_ReceiveSubscription.Replace("'", "''");
@@ -102,28 +124,41 @@ namespace SQLDependency.DBConnection.Admin
                 password,
                 instalProcedureText,
                 receiveProcedureText,
-                uninstalProcedureText) + Environment.NewLine + "GO";
+                uninstalProcedureText,
+                loginName) + Environment.NewLine + "GO";
             if (!string.IsNullOrWhiteSpace(observedShema))
                 cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO";
 
             return cmd;
         }
-        public static string GetAdminGrantObservedShemaScript( string databaseName, string mainServiceName, string observedShema)
+        public static string GetAdminGrantObservedShemaScript( string databaseName, string mainServiceName, string observedShema, string loginName = "")
         {
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
             TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO";
+            string cmd = string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema, loginName) + Environment.NewLine + "GO";
             return cmd;
         }
-        public static string GetAdminRevokeObservedShemaScript( string databaseName, string mainServiceName, string observedShema)
+        public static string GetAdminRevokeObservedShemaScript( string databaseName, string mainServiceName, string observedShema, string loginName = "")
         {
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
             TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO";
+            string cmd = string.Format(Resources.AdminRemoveObservedShema, databaseName, mainServiceName, observedShema, loginName) + Environment.NewLine + "GO";
             return cmd;
         }
-        public static string GetAdminUnInstallScript( string databaseName, string mainServiceName)
+        public static string GetAdminUnInstallScript( string databaseName, string mainServiceName, string loginName = "")
         {
+            if (string.IsNullOrWhiteSpace(loginName))
+            {
+                loginName = mainServiceName;
+            }
             TestName(mainServiceName);
-            string cmd = string.Format(Resources.AdminUninstall, databaseName, mainServiceName) + Environment.NewLine + "GO";
+            string cmd = string.Format(Resources.AdminUninstall, databaseName, mainServiceName, loginName) + Environment.NewLine + "GO";
             return cmd;
         }
 

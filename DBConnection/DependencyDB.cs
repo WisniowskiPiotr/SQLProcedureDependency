@@ -28,7 +28,18 @@ namespace SQLDependency.DBConnection
                 {
                     if (oldListener.IsListening())
                     {
-                        throw new InvalidOperationException("Listener for " + appName + " is already started. Updating it during its work is prohibited.");
+                        if (oldListener.SqlProcedures.AccessDBInstance.ConnectionString != connectionString)
+                        {
+                            throw new InvalidOperationException("Listener for " + appName + " is already started. Updating it during its work is prohibited.");
+                        }
+                        else
+                        {
+                            //oldListener.MessageHandler += messageHandler;
+                            //oldListener.UnsubscribedMessageHandler += unsubscribedMessageHandler;
+                            //oldListener.ErrorMessageHandler += errorMessageHandler;
+                            return oldListener;
+                        }
+                        
                     }
                     return new Receiver(appName, connectionString, messageHandler, unsubscribedMessageHandler, errorMessageHandler);
                 });

@@ -15,7 +15,7 @@ namespace SQLDependency.DBConnectionTests
         public void AdminInstallOnEmptyDB()
         {
             SetDBState.SetEmptyDB(CommonTestsValues.DefaultTestDBName);
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass, CommonTestsValues.LoginName);
 
             List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
                 Resources.AdminInstall_Test,
@@ -39,7 +39,7 @@ namespace SQLDependency.DBConnectionTests
         public void AdminInstallOnAdminInstalledDB()
         {
             SetDBState.SetAdminInstalledDB(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
-            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
+            AdminDependencyDBInstance.AdminInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass, CommonTestsValues.LoginName);
 
             List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
                 Resources.AdminInstall_Test,
@@ -63,7 +63,7 @@ namespace SQLDependency.DBConnectionTests
         public void AdminUninstallOnEmptyDB()
         {
             SetDBState.SetEmptyDB(CommonTestsValues.DefaultTestDBName);
-            AdminDependencyDBInstance.AdminUnInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminUnInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginName);
 
             List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
                 Resources.AdminUnInstall_Test, 
@@ -87,7 +87,7 @@ namespace SQLDependency.DBConnectionTests
         public void AdminUninstallOnAdminInstalledDB()
         {
             SetDBState.SetAdminInstalledDB(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginPass);
-            AdminDependencyDBInstance.AdminUnInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName);
+            AdminDependencyDBInstance.AdminUnInstall(CommonTestsValues.DefaultTestDBName, CommonTestsValues.MainServiceName, CommonTestsValues.LoginName);
 
             List<Tuple<string>> testResult = SetDBState.RunFile<Tuple<string>>(
                 Resources.AdminUnInstall_Test, 

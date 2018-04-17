@@ -28,7 +28,7 @@ namespace SQLDependency.DBConnectionTests
         {
             SetEmptyDB(DBName);
             AdminDependencyDB adminDependencyDB = new AdminDependencyDB(serviceAccessDBAdmin);
-            adminDependencyDB.AdminInstall(DBName, mainServiceName, password);
+            adminDependencyDB.AdminInstall(DBName, mainServiceName, password, CommonTestsValues.LoginName);
         }
 
         public static void SetSingleSubscriptionInstalledDB(string DBName, string mainServiceName, string password, string subscriber, string procedureName, SqlParameterCollection testProcedureParameters)

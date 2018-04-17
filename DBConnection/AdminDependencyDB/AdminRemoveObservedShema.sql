@@ -6,11 +6,10 @@ SET QUOTED_IDENTIFIER ON
 DECLARE @V_DBName SYSNAME = '{0}' ;
 DECLARE @V_MainName SYSNAME = '{1}' ;
 DECLARE @V_ObservedSchemaName SYSNAME = '{2}' ;
+DECLARE @V_UserName SYSNAME = '{3}';
 
 -- switch to DB
 USE [{0}];
-
-DECLARE @V_UserName SYSNAME = @V_MainName;
 
 -- switch to DB
 SET @V_Cmd = '

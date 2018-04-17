@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Data.SqlClient;
 using System.Threading;
+using static SQLDependency.DBConnection.Receiver;
 
 namespace SQLDependency.DBConnection
 {
@@ -9,14 +10,19 @@ namespace SQLDependency.DBConnection
     {
         private static ConcurrentDictionary<string, Receiver> Listeners { get; } = new ConcurrentDictionary<string, Receiver>();
 
-        public static Receiver AddReceiver(string appName, string connectionString)
+        public static Receiver AddReceiver(
+            string appName, 
+            string connectionString,
+            HandleMessage messageHandler = null,
+            HandleMessage unsubscribedMessageHandler = null,
+            HandleMessage errorMessageHandler = null)
         {
             string key = appName;
             Receiver listener = Listeners.AddOrUpdate(
                 key,
                 (foundkey) => 
                 {
-                    return new Receiver(appName, connectionString);
+                    return new Receiver(appName, connectionString, messageHandler, unsubscribedMessageHandler, errorMessageHandler);
                 },
                 (foundkey, oldListener) => 
                 {
@@ -24,7 +30,7 @@ namespace SQLDependency.DBConnection
                     {
                         throw new InvalidOperationException("Listener for " + appName + " is already started. Updating it during its work is prohibited.");
                     }
-                    return new Receiver(appName, connectionString);
+                    return new Receiver(appName, connectionString, messageHandler, unsubscribedMessageHandler, errorMessageHandler);
                 });
             return listener;
         }

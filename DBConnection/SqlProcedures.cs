@@ -40,12 +40,12 @@ namespace SQLDependency.DBConnection
             AccessDBInstance.SQLRunNonQueryProcedure(command);
         }
 
-        public List<NotificationMessage> ReceiveSubscription(string appName, int receiveTimeout = 60)
+        public List<NotificationMessage> ReceiveSubscription(string appName, int receiveTimeout = 30)
         {
             string schemaName = "[" + appName + "]";
             SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameReceiveNotification);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ReceiveTimeout", SqlDbType.Int, receiveTimeout * 1000));
-            List<NotificationMessage> result = AccessDBInstance.SQLRunQueryProcedure<NotificationMessage>(command, receiveTimeout, false);
+            List<NotificationMessage> result = AccessDBInstance.SQLRunQueryProcedure<NotificationMessage>(command, 0);
             return result;
         }
         

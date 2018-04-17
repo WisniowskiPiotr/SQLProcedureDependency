@@ -26,6 +26,7 @@ BEGIN
 		DECLARE @V_IsFound bit
 		WHILE @V_MessageTypeId = 2
 			BEGIN
+				SET @V_MessageTypeId = 0 ;
 				SET @V_ConvHandle = null ;
 				WAITFOR (
 					RECEIVE TOP(1) 
@@ -36,16 +37,16 @@ BEGIN
 					)
 					, TIMEOUT ' + CAST( @V_ReceiveTimeout AS NVARCHAR(200)) + ';
 
-				SET @V_IsFound = 0
+				SET @V_IsFound = 0 ;
 				SELECT 
 						@V_ConnectionState = CAST( state AS varchar(2)) ,  
 						@V_IsFound = 1
 					FROM sys.conversation_endpoints
-					WHERE conversation_handle = @V_ConvHandle
+					WHERE conversation_handle = @V_ConvHandle ;
 				IF ( @V_IsFound = 1 AND ( @V_ConnectionState = ''CO'' OR @V_ConnectionState = ''DI'') )
 					END CONVERSATION @V_ConvHandle; 
 			END
-        SELECT CAST( @V_Message AS NVARCHAR(MAX) ) ;
+        SELECT ISNULL( CAST( @V_Message AS NVARCHAR(MAX) ), '''') ;
 		'
 	EXEC sp_executesql @V_Cmd ;
 	RETURN 0 ;

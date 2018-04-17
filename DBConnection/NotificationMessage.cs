@@ -31,6 +31,12 @@ namespace SQLDependency.DBConnection
         /// <param name="xmlMessage"> Message string containing all neccesary information. </param>
         public NotificationMessage(string xmlMessage)
         {
+            if (string.IsNullOrWhiteSpace(xmlMessage))
+            {
+                MessageString = "";
+                MessageType = NotificationMessageType.Empty;
+                return;
+            }
             MessageString = xmlMessage;
             Message = XDocument.Parse(xmlMessage);
             base.MainServiceName = Message.Element("notification").Attribute("servicename").Value;

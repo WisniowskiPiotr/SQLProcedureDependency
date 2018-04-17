@@ -101,6 +101,8 @@ namespace SQLDependency.DBConnection
                             case NotificationMessageType.Unsubscribed:
                                 UnsubscribedMessageHandler.Invoke(message);
                                 break;
+                            case NotificationMessageType.Empty:
+                                break;
                             default:
                                 MessageHandler.Invoke(message);
                                 break;

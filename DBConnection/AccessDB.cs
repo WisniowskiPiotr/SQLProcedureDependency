@@ -37,7 +37,7 @@ namespace SQLDependency.DBConnection
         /// <param name="sqlQueryTimeout"> Timeout used for query. Default value uses value set in constructor. </param>
         /// <param name="disposeCommand"> If true command will be disposed after execution. Default: true. </param>
         /// <returns> List of objects constructed from each row returned from DB. </returns>
-        public List<T> SQLRunQueryProcedure<T>(SqlCommand command, int sqlQueryTimeout = 0, bool throwWhenTimeout = true, bool disposeCommand = true)
+        public List<T> SQLRunQueryProcedure<T>(SqlCommand command, int sqlQueryTimeout = 0,  bool disposeCommand = true)
         {
             List<T> collection = new List<T>();
             using (SqlConnection connection = new SqlConnection(ConnectionString))
@@ -64,8 +64,7 @@ namespace SQLDependency.DBConnection
                 }
                 catch (SqlException ex)
                 {
-                    if( throwWhenTimeout || !ex.Message.Contains("Timeout expired"))
-                        throw Helpers.ReportException(command, ex);
+                    throw Helpers.ReportException(command, ex);
                 }
                 finally
                 {
@@ -119,7 +118,7 @@ namespace SQLDependency.DBConnection
             else
                 command.CommandType = CommandType.StoredProcedure;
             command.Connection = connection;
-            if(sqlQueryTimeout <=0)
+            if(sqlQueryTimeout <0)
                 command.CommandTimeout = SqlQueryTimeout;
             else
                 command.CommandTimeout = sqlQueryTimeout;

@@ -29,21 +29,24 @@ namespace SQLDependency.DBConnectionTests
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginPass);
 
-            DependencyDB.StartListener(
+            DependencyDB.AddReceiver(
                 CommonTestsValues.MainServiceName,
-                CommonTestsValues.ServiceConnectionString,
-                SingleChangeWithMultipleSubscribers_HandleMsg
+                CommonTestsValues.ServiceConnectionString
                 );
+            Receiver receiver = DependencyDB.GetReceiver(CommonTestsValues.MainServiceName);
+            receiver.MessageHandler += SingleChangeWithMultipleSubscribers_HandleMsg;
+            receiver.ErrorMessageHandler += SingleChangeWithMultipleSubscribers_HandleMsg;
+            receiver.UnsubscribedMessageHandler += SingleChangeWithMultipleSubscribers_HandleMsg;
+            Task receiverTask = new Task(receiver.Start);
+            receiverTask.Start();
 
-            
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
             DateTime validTill = (DateTime.Now).AddDays(5.0);
             for (int i = 0; i < CountParallelInstances; i++)
             {
                 string subscriberName = "subscriber" + i;
                 SingleChangeWithMultipleSubscribers_Subscribers.Add(subscriberName);
-                DependencyDB.Subscribe(
-                    CommonTestsValues.MainServiceName,
+                receiver.Subscribe(
                     subscriberName,
                     CommonTestsValues.SubscribedProcedureSchema,
                     "P_TestGetProcedure",
@@ -72,8 +75,9 @@ namespace SQLDependency.DBConnectionTests
             });
             waitForResults.Start();
             waitForResults.Wait(20000);
+            receiverTask.Wait(1);
 
-            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+            DependencyDB.StopReceiver(CommonTestsValues.MainServiceName);
 
             if (SingleChangeWithMultipleSubscribers_Subscribers.Count > 0)
             {
@@ -95,12 +99,16 @@ namespace SQLDependency.DBConnectionTests
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginPass);
 
-            DependencyDB.StartListener(
+            DependencyDB.AddReceiver(
                 CommonTestsValues.MainServiceName,
-                CommonTestsValues.ServiceConnectionString,
-                ParallelSubscribeTest_HandleMsg
+                CommonTestsValues.ServiceConnectionString
                 );
-
+            Receiver receiver = DependencyDB.GetReceiver(CommonTestsValues.MainServiceName);
+            receiver.MessageHandler += ParallelSubscribeTest_HandleMsg;
+            receiver.ErrorMessageHandler += ParallelSubscribeTest_HandleMsg;
+            receiver.UnsubscribedMessageHandler += ParallelSubscribeTest_HandleMsg;
+            Task receiverTask = new Task(receiver.Start);
+            receiverTask.Start();
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
             DateTime validTill = (DateTime.Now).AddDays(5.0);
@@ -121,8 +129,7 @@ namespace SQLDependency.DBConnectionTests
                         default:
                             break;
                     }
-                    DependencyDB.Subscribe(
-                        CommonTestsValues.MainServiceName,
+                    receiver.Subscribe(
                         subscriberName,
                         CommonTestsValues.SubscribedProcedureSchema,
                         "P_TestGetProcedure",
@@ -152,8 +159,9 @@ namespace SQLDependency.DBConnectionTests
             });
             waitForResults.Start();
             waitForResults.Wait(20000);
+            receiverTask.Wait(1);
 
-            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+            DependencyDB.StopReceiver(CommonTestsValues.MainServiceName);
 
             if (ParallelSubscribeTest_Subscribers.Count > 0)
             {
@@ -175,11 +183,16 @@ namespace SQLDependency.DBConnectionTests
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginPass);
 
-            DependencyDB.StartListener(
+            DependencyDB.AddReceiver(
                 CommonTestsValues.MainServiceName,
-                CommonTestsValues.ServiceConnectionString,
-                ParallelUnSubscribeTest_HandleMsg
+                CommonTestsValues.ServiceConnectionString
                 );
+            Receiver receiver = DependencyDB.GetReceiver(CommonTestsValues.MainServiceName);
+            receiver.MessageHandler += ParallelUnSubscribeTest_HandleMsg;
+            receiver.ErrorMessageHandler += ParallelUnSubscribeTest_HandleMsg;
+            receiver.UnsubscribedMessageHandler += ParallelUnSubscribeTest_HandleMsg;
+            Task receiverTask = new Task(receiver.Start);
+            receiverTask.Start();
 
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
@@ -198,8 +211,7 @@ namespace SQLDependency.DBConnectionTests
                             accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
                             break;
                         default:
-                            DependencyDB.Subscribe(
-                                CommonTestsValues.MainServiceName,
+                            receiver.Subscribe(
                                 subscriberName,
                                 CommonTestsValues.SubscribedProcedureSchema,
                                 "P_TestGetProcedure",
@@ -221,16 +233,16 @@ namespace SQLDependency.DBConnectionTests
                         default:
                             break;
                     }
-                    DependencyDB.UnSubscribe(
-                        CommonTestsValues.MainServiceName,
+                    receiver.UnSubscribe(
                         subscriberName,
                         CommonTestsValues.SubscribedProcedureSchema,
                         "P_TestGetProcedure",
                         sqlParameters
                         );
                 });
+            receiverTask.Wait(1);
 
-            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+            DependencyDB.StopReceiver(CommonTestsValues.MainServiceName);
             
         }
 
@@ -248,11 +260,16 @@ namespace SQLDependency.DBConnectionTests
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginPass);
 
-            DependencyDB.StartListener(
+            DependencyDB.AddReceiver(
                 CommonTestsValues.MainServiceName,
-                CommonTestsValues.ServiceConnectionString,
-                ParallelUnSubscribeSubscribeTest_HandleMsg
+                CommonTestsValues.ServiceConnectionString
                 );
+            Receiver receiver = DependencyDB.GetReceiver(CommonTestsValues.MainServiceName);
+            receiver.MessageHandler += ParallelUnSubscribeSubscribeTest_HandleMsg;
+            receiver.ErrorMessageHandler += ParallelUnSubscribeSubscribeTest_HandleMsg;
+            receiver.UnsubscribedMessageHandler += ParallelUnSubscribeSubscribeTest_HandleMsg;
+            Task receiverTask = new Task(receiver.Start);
+            receiverTask.Start();
 
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
@@ -271,8 +288,7 @@ namespace SQLDependency.DBConnectionTests
                             accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
                             break;
                         default:
-                            DependencyDB.Subscribe(
-                                CommonTestsValues.MainServiceName,
+                            receiver.Subscribe(
                                 subscriberName,
                                 CommonTestsValues.SubscribedProcedureSchema,
                                 "P_TestGetProcedure",
@@ -292,8 +308,7 @@ namespace SQLDependency.DBConnectionTests
                             accesDB.SQLRunNonQueryProcedure(new SqlCommand(Resources.SelectFromTable));
                             break;
                         case 2:
-                            DependencyDB.UnSubscribe(
-                                CommonTestsValues.MainServiceName,
+                            receiver.UnSubscribe(
                                 subscriberName,
                                 CommonTestsValues.SubscribedProcedureSchema,
                                 "P_TestGetProcedure",
@@ -301,8 +316,7 @@ namespace SQLDependency.DBConnectionTests
                                 );
                             break;
                         default:
-                            DependencyDB.Subscribe(
-                                CommonTestsValues.MainServiceName,
+                            receiver.Subscribe(
                                 subscriberName,
                                 CommonTestsValues.SubscribedProcedureSchema,
                                 "P_TestGetProcedure",
@@ -312,8 +326,9 @@ namespace SQLDependency.DBConnectionTests
                             break;
                     }
                 });
+            receiverTask.Wait(1);
 
-            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
+            DependencyDB.StopReceiver(CommonTestsValues.MainServiceName);
 
         }
     }

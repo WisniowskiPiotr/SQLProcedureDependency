@@ -45,7 +45,7 @@ namespace SQLDependency.DBConnection
             string schemaName = "[" + appName + "]";
             SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameReceiveNotification);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ReceiveTimeout", SqlDbType.Int, receiveTimeout * 1000));
-            List<NotificationMessage> result = AccessDBInstance.SQLRunQueryProcedure<NotificationMessage>(command, receiveTimeout);
+            List<NotificationMessage> result = AccessDBInstance.SQLRunQueryProcedure<NotificationMessage>(command, receiveTimeout, false);
             return result;
         }
         

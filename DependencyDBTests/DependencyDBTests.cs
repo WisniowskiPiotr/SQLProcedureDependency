@@ -30,16 +30,20 @@ namespace SQLDependency.DBConnectionTests
                 CommonTestsValues.MainServiceName,
                 CommonTestsValues.LoginPass);
 
-            DependencyDB.StartListener(
+            DependencyDB.AddReceiver(
                 CommonTestsValues.MainServiceName,
-                CommonTestsValues.ServiceConnectionString,
-                HandleMsg
+                CommonTestsValues.ServiceConnectionString
                 );
+            Receiver receiver = DependencyDB.GetReceiver(CommonTestsValues.MainServiceName);
+            receiver.MessageHandler += HandleMsg;
+            receiver.ErrorMessageHandler += HandleMsg;
+            receiver.UnsubscribedMessageHandler += HandleMsg;
+            Task receiverTask = new Task(receiver.Start);
+            receiverTask.Start();
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
             DateTime validTill = (DateTime.Now).AddDays(5.0);
-            DependencyDB.Subscribe(
-                CommonTestsValues.MainServiceName,
+            receiver.Subscribe(
                 CommonTestsValues.FirstSunscriberName,
                 CommonTestsValues.SubscribedProcedureSchema,
                 "P_TestGetProcedure",
@@ -66,47 +70,13 @@ namespace SQLDependency.DBConnectionTests
             });
             waitForResults.Start();
             waitForResults.Wait(10000);
+            receiverTask.Wait(1);
 
-            DependencyDB.StopListener( CommonTestsValues.MainServiceName);
+            DependencyDB.StopReceiver( CommonTestsValues.MainServiceName);
 
             if (Message == null)
             {
                 Assert.Fail();
-            }
-        }
-
-        public bool ReceiveSingleSubscription()
-        {
-            SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
-            DateTime validTill = (DateTime.Now).AddDays(5.0);
-            DependencyDB.Subscribe(
-                CommonTestsValues.MainServiceName,
-                CommonTestsValues.FirstSunscriberName,
-                CommonTestsValues.SubscribedProcedureSchema,
-                "P_TestGetProcedure",
-                sqlParameters,
-                validTill
-                );
-
-            Task waitForResults = new Task(() =>
-            {
-                while (Message == null)
-                {
-                    Thread.Sleep(100);
-                }
-            });
-            waitForResults.Start();
-            waitForResults.Wait(10000);
-
-            DependencyDB.StopListener(CommonTestsValues.MainServiceName);
-
-            if (Message == null)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
             }
         }
     }

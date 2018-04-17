@@ -1,21 +1,22 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SQLDependency.DBConnection
 {
-    internal class Listener : IDisposable
+    public class Receiver : IDisposable
     {
+        public delegate void HandleMessage(NotificationMessage message);
         /// <summary>
         /// CancellationTokenSource used to cancel Listener task.
         /// </summary>
-        private CancellationTokenSource _LisenerCancellationTokenSource;
-        private Task listenerJob;
-        public DependencyDB.HandleMessage MessageHandler { get; }
-        public DependencyDB.HandleMessage UnsubscribedMessageHandler { get; }
-        public DependencyDB.HandleMessage ErrorMessageHandler { get; }
+        private CancellationTokenSource LoopCancellationToken;
+        public event HandleMessage MessageHandler;
+        public event HandleMessage UnsubscribedMessageHandler;
+        public event HandleMessage ErrorMessageHandler;
 
         /// <summary>
         /// Instance used 
@@ -28,40 +29,41 @@ namespace SQLDependency.DBConnection
         /// </summary>
         /// <param name="connectionString"> Connection string used for connectiong to DB. </param>
         /// <param name="sqlTimeout"> Timeout used for waiting for DependencyDB messages. </param>
-        public Listener(
+        public Receiver(
             string appName, 
-            string connectionString, 
-            DependencyDB.HandleMessage messageHandler, 
-            DependencyDB.HandleMessage unsubscribedMessageHandler = null, 
-            DependencyDB.HandleMessage errorMessageHandler = null, 
+            string connectionString,
+            HandleMessage messageHandler = null,
+            HandleMessage unsubscribedMessageHandler = null,
+            HandleMessage errorMessageHandler = null,
             int sqlTimeout=30)
         {
             AppName = appName;
             SqlProcedures = new SqlProcedures(connectionString, sqlTimeout);
-            MessageHandler = messageHandler;
-            UnsubscribedMessageHandler = unsubscribedMessageHandler ?? messageHandler;
-            ErrorMessageHandler = errorMessageHandler ?? unsubscribedMessageHandler ?? messageHandler;
+            MessageHandler += messageHandler;
+            UnsubscribedMessageHandler += unsubscribedMessageHandler ?? messageHandler;
+            ErrorMessageHandler += errorMessageHandler ?? unsubscribedMessageHandler ?? messageHandler;
         }
 
         /// <summary>
         /// Starts listening for notifications.
         /// </summary>
-        public void Start()
+        public void Start(CancellationToken loopCancellationToken)
         {
             Stop();
-            _LisenerCancellationTokenSource = new CancellationTokenSource();
+            LoopCancellationToken = new CancellationTokenSource();
+            loopCancellationToken.Register(Stop);
             try
             {
-                listenerJob=Task.Factory.StartNew(
-                    NotificationLoop,
-                    _LisenerCancellationTokenSource.Token, 
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default
-                    );
+                NotificationLoop();
             }
             catch (TaskCanceledException)
             {
             }
+        }
+        public void Start()
+        {
+            CancellationToken loopCancellationToken = new CancellationToken(false);
+            Start(loopCancellationToken);
         }
 
         /// <summary>
@@ -69,15 +71,10 @@ namespace SQLDependency.DBConnection
         /// </summary>
         public void Stop()
         {
-            if (_LisenerCancellationTokenSource != null
-                && !_LisenerCancellationTokenSource.Token.IsCancellationRequested
-                && _LisenerCancellationTokenSource.Token.CanBeCanceled)
-                _LisenerCancellationTokenSource.Cancel();
-            
-            if (_LisenerCancellationTokenSource != null)
+            if (LoopCancellationToken != null
+                && !LoopCancellationToken.IsCancellationRequested)
             {
-                _LisenerCancellationTokenSource.Dispose();
-                _LisenerCancellationTokenSource = null;
+                LoopCancellationToken.Cancel();
             }
         }
 
@@ -129,10 +126,8 @@ namespace SQLDependency.DBConnection
         /// <returns> Returns flag determining if listener is listening. </returns>
         public bool IsListening()
         {
-            if (_LisenerCancellationTokenSource != null
-                && !_LisenerCancellationTokenSource.IsCancellationRequested )
-                //&& listenerJob !=null
-                //&& listenerJob.Status == TaskStatus.Running)
+            if (LoopCancellationToken != null
+                && !LoopCancellationToken.IsCancellationRequested )
                 return true;
             else
                 return false;
@@ -142,6 +137,40 @@ namespace SQLDependency.DBConnection
         {
             if (IsListening())
                 Stop();
+        }
+
+        public void Subscribe(string subscriberName, string procedureSchemaName, string procedureName, SqlParameterCollection procedureParameters, DateTime validTill)
+        {
+            Subscription subscription = new Subscription(
+                    AppName,
+                    subscriberName,
+                    procedureSchemaName,
+                    procedureName,
+                    procedureParameters,
+                    Convert.ToInt32((validTill - DateTime.Now).TotalSeconds)
+                    );
+            Subscribe(subscription);
+        }
+        public void Subscribe( Subscription subscription)
+        {
+            SqlProcedures.InstallSubscription(subscription);
+        }
+        public void UnSubscribe( string subscriberName = "", string procedureSchemaName = "", string procedureName = "", SqlParameterCollection procedureParameters = null, int notificationValidFor = 86400)
+        {
+
+            Subscription subscription = new Subscription(
+                    AppName,
+                    subscriberName,
+                    procedureSchemaName,
+                    procedureName,
+                    procedureParameters,
+                    notificationValidFor
+                    );
+            UnSubscribe( subscription);
+        }
+        public void UnSubscribe(Subscription subscription)
+        {
+            SqlProcedures.UninstallSubscription(subscription);
         }
     }
 }

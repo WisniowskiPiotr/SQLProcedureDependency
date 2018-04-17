@@ -127,7 +127,7 @@ namespace SQLDependency.DBConnection.Admin
                 uninstalProcedureText,
                 loginName) + Environment.NewLine + "GO";
             if (!string.IsNullOrWhiteSpace(observedShema))
-                cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema) + Environment.NewLine + "GO";
+                cmd = cmd + Environment.NewLine + string.Format(Resources.AdminAddObservedShema, databaseName, mainServiceName, observedShema, loginName) + Environment.NewLine + "GO";
 
             return cmd;
         }

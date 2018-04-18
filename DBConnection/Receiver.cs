@@ -85,7 +85,20 @@ namespace SQLDependency.DBConnection
         {
             while (IsListening())
             {
-                List<NotificationMessage> messages = SqlProcedures.ReceiveSubscription(AppName);
+                List<NotificationMessage> messages = new List<NotificationMessage>();
+                try
+                {
+                    messages = SqlProcedures.ReceiveSubscription(AppName);
+                }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        ErrorMessageHandler.Invoke(new NotificationMessage(ex.Message));
+                    }
+                    catch (Exception)
+                    { }
+                }
                 foreach (NotificationMessage message in messages)
                 {
                     try

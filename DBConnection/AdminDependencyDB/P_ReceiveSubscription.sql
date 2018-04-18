@@ -26,6 +26,7 @@ BEGIN
 		DECLARE @V_IsFound bit
 		WHILE @V_MessageTypeId = 2
 			BEGIN
+				BEGIN TRANSACTION ;
 				SET @V_MessageTypeId = 0 ;
 				SET @V_ConvHandle = null ;
 				WAITFOR (
@@ -45,6 +46,7 @@ BEGIN
 					WHERE conversation_handle = @V_ConvHandle ;
 				IF ( @V_IsFound = 1 AND ( @V_ConnectionState = ''CO'' OR @V_ConnectionState = ''DI'') )
 					END CONVERSATION @V_ConvHandle; 
+				COMMIT TRANSACTION ;
 			END
         SELECT ISNULL( CAST( @V_Message AS NVARCHAR(MAX) ), '''') ;
 		'

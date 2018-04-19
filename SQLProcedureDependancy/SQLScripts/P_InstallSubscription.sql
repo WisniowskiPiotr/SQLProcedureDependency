@@ -252,7 +252,7 @@ BEGIN
 			-- Trigger statement
 			SET @V_TriggerBody = '
 				ON ' + @V_ReferencedQuotedTable + ' 
-				WITH EXECUTE AS ''' + USER_NAME() + '''
+				WITH EXECUTE AS ''' + @V_UserName + '''
 				AFTER INSERT, UPDATE, DELETE
 				AS 
 				BEGIN

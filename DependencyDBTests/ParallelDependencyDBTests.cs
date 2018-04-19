@@ -37,7 +37,7 @@ namespace SQLDependency.DBConnectionTests
             receiver.MessageHandler += SingleChangeWithMultipleSubscribers_HandleMsg;
             receiver.ErrorMessageHandler += SingleChangeWithMultipleSubscribers_HandleMsg;
             receiver.UnsubscribedMessageHandler += SingleChangeWithMultipleSubscribers_HandleMsg;
-            Task receiverTask = new Task(receiver.Start);
+            Task receiverTask = new Task(receiver.Listen);
             receiverTask.Start();
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
@@ -107,7 +107,7 @@ namespace SQLDependency.DBConnectionTests
             receiver.MessageHandler += ParallelSubscribeTest_HandleMsg;
             receiver.ErrorMessageHandler += ParallelSubscribeTest_HandleMsg;
             receiver.UnsubscribedMessageHandler += ParallelSubscribeTest_HandleMsg;
-            Task receiverTask = new Task(receiver.Start);
+            Task receiverTask = new Task(receiver.Listen);
             receiverTask.Start();
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);
@@ -191,7 +191,7 @@ namespace SQLDependency.DBConnectionTests
             receiver.MessageHandler += ParallelUnSubscribeTest_HandleMsg;
             receiver.ErrorMessageHandler += ParallelUnSubscribeTest_HandleMsg;
             receiver.UnsubscribedMessageHandler += ParallelUnSubscribeTest_HandleMsg;
-            Task receiverTask = new Task(receiver.Start);
+            Task receiverTask = new Task(receiver.Listen);
             receiverTask.Start();
 
 
@@ -268,7 +268,7 @@ namespace SQLDependency.DBConnectionTests
             receiver.MessageHandler += ParallelUnSubscribeSubscribeTest_HandleMsg;
             receiver.ErrorMessageHandler += ParallelUnSubscribeSubscribeTest_HandleMsg;
             receiver.UnsubscribedMessageHandler += ParallelUnSubscribeSubscribeTest_HandleMsg;
-            Task receiverTask = new Task(receiver.Start);
+            Task receiverTask = new Task(receiver.Listen);
             receiverTask.Start();
 
 

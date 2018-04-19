@@ -9,20 +9,37 @@ namespace SQLDependency.DBConnection
 {
     internal class SqlProcedures
     {
+        private const string ProcedureNameInstall = "[P_InstallSubscription]";
+        private const string ProcedureNameReceiveNotification = "[P_ReceiveSubscription]";
+        private const string ProcedureNameUninstall = "[P_UninstallSubscription]";
+        /// <summary>
+        /// AccessDB instance used to connect to DB.
+        /// </summary>
         public AccessDB AccessDBInstance { get; }
-        private string ProcedureNameInstall = "[P_InstallSubscription]";
-        private string ProcedureNameReceiveNotification = "[P_ReceiveSubscription]";
-        private string ProcedureNameUninstall = "[P_UninstallSubscription]";
 
+        /// <summary>
+        /// Create SqlProcedures which allows execution of DependencyDB procedures.
+        /// </summary>
+        /// <param name="connectionString"> Connection string with all admin provilages used to connect to DB. </param>
+        /// <param name="sqlQueryTimeout"> Timeout used during execution of queries in seconds. Default: 30s. </param>
         public SqlProcedures( string connectionString, int queryTimeout=30)
         {
             AccessDBInstance = new AccessDB(connectionString, queryTimeout);
         }
+
+        /// <summary>
+        /// Create SqlProcedures which allows execution of DependencyDB procedures.
+        /// </summary>
+        /// <param name="accessDB"> AccessDB class used to connect to DB. </param>
         public SqlProcedures( AccessDB accessDB)
         {
             AccessDBInstance = accessDB;
         }
 
+        /// <summary>
+        /// Procedure used to install subsctiption in DB.
+        /// </summary>
+        /// <param name="subscription"> Subscription to be installed. </param>
         public void InstallSubscription(Subscription subscription)
         {
             if (!subscription.CanBeInstalled())
@@ -40,15 +57,25 @@ namespace SQLDependency.DBConnection
             AccessDBInstance.SQLRunNonQueryProcedure(command);
         }
 
+        /// <summary>
+        /// Procedure used to receive messages from DB.
+        /// </summary>
+        /// <param name="appName"> Application name from which messages will be returned. </param>
+        /// <param name="receiveTimeout"> Timeout used during execution of queries in seconds. Default: 30s. (schould be less tchan typical app pool recucle time = 90s )</param>
+        /// <returns></returns>
         public List<NotificationMessage> ReceiveSubscription(string appName, int receiveTimeout = 30)
         {
             string schemaName = "[" + appName + "]";
             SqlCommand command = new SqlCommand(schemaName + "." + ProcedureNameReceiveNotification);
             command.Parameters.Add(AccessDB.CreateSqlParameter("V_ReceiveTimeout", SqlDbType.Int, receiveTimeout * 1000));
-            List<NotificationMessage> result = AccessDBInstance.SQLRunQueryProcedure<NotificationMessage>(command, 0);
+            List<NotificationMessage> result = AccessDBInstance.SQLRunQueryProcedure<NotificationMessage>(command,null, 0);
             return result;
         }
-        
+
+        /// <summary>
+        /// Procedure used to uninstall subsctiption from DB.
+        /// </summary>
+        /// <param name="subscription"> Subscription to be uninstalled. </param>
         public void UninstallSubscription(Subscription subscription)
         {
             string schemaName = "[" + subscription.MainServiceName + "]";
@@ -63,10 +90,10 @@ namespace SQLDependency.DBConnection
         }
 
         /// <summary>
-        /// Converts SqlParameterCollection to DataTable to be passed to db as SpParametersType.
+        /// Converts SqlParameterCollection to be passed to db as SpParametersType.
         /// </summary>
         /// <param name="comandParameters"> SqlParameterCollection to be converted. </param>
-        /// <returns> DataTable containing all neccesary comandParameters informations. </returns>
+        /// <returns> DataTable containing all neccesary comandParameters information. </returns>
         private static List<SqlDataRecord> SqlParameterCollectionToDataTable(SqlParameterCollection comandParameters)
         {
             List<SqlDataRecord> procedureParameters = new List<SqlDataRecord>();
@@ -89,6 +116,12 @@ namespace SQLDependency.DBConnection
             return procedureParameters;
         }
 
+        /// <summary>
+        /// Returns string witch valid Sql value for specified type.
+        /// </summary>
+        /// <param name="paramValue"> Value to be converted to string. </param>
+        /// <param name="sqlDbType"> SqlDbType of paramValue. </param>
+        /// <returns> Returns string witch valid Sql value for specified type. </returns>
         private static string GetSqlParameterStringValue(object paramValue, SqlDbType sqlDbType)
         {
             if (paramValue == DBNull.Value || paramValue == null)

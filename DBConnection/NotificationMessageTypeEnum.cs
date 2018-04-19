@@ -2,7 +2,7 @@
 namespace SQLDependency.DBConnection
 {
     /// <summary>
-    /// Typical EventMessageTypes set from root node from xml notification message.
+    /// Typical NotificationMessageType set from xml notification message.
     /// </summary>
     public enum NotificationMessageType
     {

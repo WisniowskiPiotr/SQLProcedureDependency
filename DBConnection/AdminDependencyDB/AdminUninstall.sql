@@ -7,7 +7,7 @@ DECLARE @V_DBName SYSNAME = '{0}' ;
 DECLARE @V_MainName SYSNAME = '{1}' ;
 DECLARE @V_LoginName SYSNAME = '{2}' ;
 DECLARE @V_SchemaName SYSNAME = @V_MainName ;
-DECLARE @V_UserName SYSNAME = @V_MainName ;
+DECLARE @V_UserName SYSNAME = @V_LoginName ;
 DECLARE @V_QueueName SYSNAME = 'Q_' + @V_MainName ;
 DECLARE @V_ServiceName SYSNAME = 'S_' + @V_MainName ;
 DECLARE @V_SubscribersTableName SYSNAME = 'TBL_SubscribersTable' ;
@@ -140,7 +140,8 @@ IF EXISTS (
 	END
 
 -- drop user
-IF EXISTS (
+IF LEN(@V_UserName) > 0 AND 
+	EXISTS (
 	SELECT [database_principals].[name]
 	FROM sys.database_principals AS [database_principals]
 	WHERE QUOTENAME( [database_principals].[name] ) = QUOTENAME( @V_UserName )
@@ -153,7 +154,8 @@ IF EXISTS (
 	END
 
 -- drop login
-IF EXISTS (
+IF LEN(@V_LoginName) > 0 AND
+	EXISTS (
 	SELECT [server_principals].[name]
 	FROM master.sys.server_principals AS [server_principals]
 	WHERE QUOTENAME( [server_principals].[name] ) = QUOTENAME( @V_LoginName )

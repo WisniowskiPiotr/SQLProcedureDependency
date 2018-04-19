@@ -36,7 +36,7 @@ namespace SQLDependency.DBConnectionTests
             receiver.MessageHandler += HandleMsg;
             receiver.ErrorMessageHandler += HandleMsg;
             receiver.UnsubscribedMessageHandler += HandleMsg;
-            Task receiverTask = new Task(receiver.Start);
+            Task receiverTask = new Task(receiver.Listen);
             receiverTask.Start();
 
             Task waitForResults = new Task(() =>
@@ -74,7 +74,7 @@ namespace SQLDependency.DBConnectionTests
             receiver.MessageHandler += HandleMsg;
             receiver.ErrorMessageHandler += HandleMsg;
             receiver.UnsubscribedMessageHandler += HandleMsg;
-            Task receiverTask = new Task(receiver.Start);
+            Task receiverTask = new Task(receiver.Listen);
             receiverTask.Start();
 
             SqlCommand dataChangeCommand = new SqlCommand("dbo.P_TestSetProcedure");
@@ -150,7 +150,7 @@ namespace SQLDependency.DBConnectionTests
             CancellationTokenSource cancelationSuorce = new CancellationTokenSource();
             Task receiverTask = new Task(() =>
                 {
-                    receiver.Start(cancelationSuorce.Token);
+                    receiver.Listen(cancelationSuorce.Token);
                 }
             );
             receiverTask.Start();

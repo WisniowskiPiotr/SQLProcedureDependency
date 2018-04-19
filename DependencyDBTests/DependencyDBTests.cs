@@ -38,7 +38,7 @@ namespace SQLDependency.DBConnectionTests
             receiver.MessageHandler += HandleMsg;
             receiver.ErrorMessageHandler += HandleMsg;
             receiver.UnsubscribedMessageHandler += HandleMsg;
-            Task receiverTask = new Task(receiver.Start);
+            Task receiverTask = new Task(receiver.Listen);
             receiverTask.Start();
 
             SqlParameterCollection sqlParameters = SqlProceduresTests.GetSqlParameterCollectionForTestProcedure(10);

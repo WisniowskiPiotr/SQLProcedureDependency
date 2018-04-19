@@ -9,26 +9,45 @@ namespace SQLDependency.DBConnection
 {
     public class Receiver : IDisposable
     {
-        public delegate void HandleMessage(NotificationMessage message);
         /// <summary>
-        /// CancellationTokenSource used to cancel Listener task.
+        /// CancellationTokenSource used to cancel listening of this receiver.
         /// </summary>
         private CancellationTokenSource LoopCancellationToken;
-        public event HandleMessage MessageHandler;
-        public event HandleMessage UnsubscribedMessageHandler;
-        public event HandleMessage ErrorMessageHandler;
-
         /// <summary>
-        /// Instance used 
+        /// Instance used to run sql scripts.
         /// </summary>
         internal SqlProcedures SqlProcedures { get; }
+        /// <summary>
+        /// Delegate used to handle NotificationMessages.
+        /// </summary>
+        /// <param name="message"> Message to be handled. </param>
+        public delegate void HandleMessage(NotificationMessage message);
+        /// <summary>
+        /// Handler used to handle typical NotificationMessage.
+        /// </summary>
+        public event HandleMessage MessageHandler;
+        /// <summary>
+        /// Handler used to handle unsubscribe NotificationMessage.
+        /// </summary>
+        public event HandleMessage UnsubscribedMessageHandler;
+        /// <summary>
+        /// Handler used to handle error NotificationMessage.
+        /// </summary>
+        public event HandleMessage ErrorMessageHandler;
+        /// <summary>
+        /// Application name for which messages listener will be listening.
+        /// </summary>
         public string AppName { get; }
 
         /// <summary>
-        /// Returns new Listener using connectionString to connect to DB.
+        /// Creates new receiver witch specified properies.
         /// </summary>
-        /// <param name="connectionString"> Connection string used for connectiong to DB. </param>
-        /// <param name="sqlTimeout"> Timeout used for waiting for DependencyDB messages. </param>
+        /// <param name="appName"> Application name for which messages listener will be listening. </param>
+        /// <param name="connectionString"> Connection string used to connect to DB. </param>
+        /// <param name="messageHandler"> Handler used to handle typical NotificationMessage. Default: no handler is specified. </param>
+        /// <param name="unsubscribedMessageHandler"> Handler used to handle unsubscribe NotificationMessage. Default: messageHandler handler is used. </param>
+        /// <param name="errorMessageHandler"> Handler used to handle unsubscribe NotificationMessage. Default: unsubscribedMessageHandler handler is used. </param>
+        /// <param name="sqlTimeout"> Timeout in seconds used for query. Default value uses value set in constructor. 0 indicates infinite. Default: 30. </param>
         public Receiver(
             string appName, 
             string connectionString,
@@ -47,7 +66,8 @@ namespace SQLDependency.DBConnection
         /// <summary>
         /// Starts listening for notifications.
         /// </summary>
-        public void Start(CancellationToken loopCancellationToken)
+        /// <param name="loopCancellationToken"> CancellationToken used to cancel listening. Method is sync. </param>
+        public void Listen(CancellationToken loopCancellationToken)
         {
             Stop();
             LoopCancellationToken = new CancellationTokenSource();
@@ -60,14 +80,18 @@ namespace SQLDependency.DBConnection
             {
             }
         }
-        public void Start()
-        {
-            CancellationToken loopCancellationToken = new CancellationToken(false);
-            Start(loopCancellationToken);
-        }
 
         /// <summary>
-        /// Stops listening for notifications. Cancels Listener task and clears sql db.
+        /// Starts listening for notifications.
+        /// </summary>
+        public void Listen()
+        {
+            CancellationToken loopCancellationToken = new CancellationToken(false);
+            Listen(loopCancellationToken);
+        }
+        
+        /// <summary>
+        /// Stops listening for notifications. Cancels Listener task.
         /// </summary>
         public void Stop()
         {
@@ -79,7 +103,7 @@ namespace SQLDependency.DBConnection
         }
 
         /// <summary>
-        /// Loop for listener task.
+        /// Main loop for listener task.
         /// </summary>
         private void NotificationLoop()
         {
@@ -148,12 +172,23 @@ namespace SQLDependency.DBConnection
                 return false;
         }
 
+        /// <summary>
+        /// Destructor of object. Calls Stop() internally.
+        /// </summary>
         public void Dispose()
         {
             if (IsListening())
                 Stop();
         }
 
+        /// <summary>
+        /// Subscribes for notification.
+        /// </summary>
+        /// <param name="subscriberName"> SubscriberName used to identify subscriber. </param>
+        /// <param name="procedureSchemaName"> Schema name of procedure for which subscription will be made. </param>
+        /// <param name="procedureName"> Procedure name for which subscription will be made. </param>
+        /// <param name="procedureParameters"> Procedure parameters for which subscription will be made. </param>
+        /// <param name="validTill"> DateTime till when subscription will be active. </param>
         public void Subscribe(string subscriberName, string procedureSchemaName, string procedureName, SqlParameterCollection procedureParameters, DateTime validTill)
         {
             Subscription subscription = new Subscription(
@@ -166,10 +201,24 @@ namespace SQLDependency.DBConnection
                     );
             Subscribe(subscription);
         }
+
+        /// <summary>
+        /// Subscribes for notification.
+        /// </summary>
+        /// <param name="subscription"> Subscription used to subscribe. </param>
         public void Subscribe( Subscription subscription)
         {
             SqlProcedures.InstallSubscription(subscription);
         }
+
+        /// <summary>
+        /// UnSubscribe from notification.
+        /// </summary>
+        /// <param name="subscriberName"> SubscriberName used to identify subscriber. </param>
+        /// <param name="procedureSchemaName"> Schema name of procedure for which subscription will be made. </param>
+        /// <param name="procedureName"> Procedure name for which subscription will be made. </param>
+        /// <param name="procedureParameters"> Procedure parameters for which subscription will be made. </param>
+        /// <param name="validTill"> DateTime till when notification of unsubsctription will be active. </param>
         public void UnSubscribe( string subscriberName = "", string procedureSchemaName = "", string procedureName = "", SqlParameterCollection procedureParameters = null, int notificationValidFor = 86400)
         {
 
@@ -183,6 +232,11 @@ namespace SQLDependency.DBConnection
                     );
             UnSubscribe( subscription);
         }
+
+        /// <summary>
+        /// UnSubscribe from notification.
+        /// </summary>
+        /// <param name="subscription"> Subscription used to unsubscribe. </param>
         public void UnSubscribe(Subscription subscription)
         {
             SqlProcedures.UninstallSubscription(subscription);

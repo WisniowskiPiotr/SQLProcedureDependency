@@ -15,15 +15,15 @@ namespace SQLDependency.DBConnection
         /// </summary>
         public string ConnectionString;
         /// <summary>
-        /// Returns currently set timeout for AccessDB queries in seconds.
+        /// Returns timeout in seconds for AccessDB queries in seconds.
         /// </summary>
         public int SqlQueryTimeout;
-        
+
         /// <summary>
         /// Create obcject used to connect to DB with specified connection string.
         /// </summary>
-        /// <param name="connectionString">Connection string used to connect to DB.</param>
-        /// <param name="sqlQueryTimeout">Timeout used during execution of queries in seconds. Default: 30s.</param>
+        /// <param name="connectionString">Connection string used to connect to DB. </param>
+        /// <param name="sqlQueryTimeout">Timeout in seconds used during execution of queries in seconds. Default: 30s. </param>
         public AccessDB(string connectionString, int sqlQueryTimeout=30)
         {
             ConnectionString = connectionString;
@@ -33,11 +33,12 @@ namespace SQLDependency.DBConnection
         /// <summary>
         /// Connects and executes sql procedure with returning a list of objects.
         /// </summary>
-        /// <param name="command"> SqlCommand used for query. CommandText and Parameters must be set properly. </param>
-        /// <param name="sqlQueryTimeout"> Timeout used for query. Default value uses value set in constructor. </param>
+        /// <param name="command"> SqlCommand used for query. Only command text and command parameters must be set properly. </param>
+        /// <param name="columnNames"> Array of column names wchich values are used in object creator. If null then all columns are passed to object constructor. Default: null. </param>
+        /// <param name="sqlQueryTimeout"> Timeout in seconds used for query. Default value uses value set in constructor. 0 indicates infinite. Default: -1. </param>
         /// <param name="disposeCommand"> If true command will be disposed after execution. Default: true. </param>
         /// <returns> List of objects constructed from each row returned from DB. </returns>
-        public List<T> SQLRunQueryProcedure<T>(SqlCommand command, int sqlQueryTimeout = 0,  bool disposeCommand = true)
+        public List<T> SQLRunQueryProcedure<T>(SqlCommand command, string[] columnNames = null, int sqlQueryTimeout = -1,  bool disposeCommand = true)
         {
             List<T> collection = new List<T>();
             using (SqlConnection connection = new SqlConnection(ConnectionString))
@@ -50,13 +51,27 @@ namespace SQLDependency.DBConnection
                     {
                         while (sqlDataReader.Read())
                         {
-                            object[] cells = new object[sqlDataReader.FieldCount];
-                            for (int column = 0; column < sqlDataReader.FieldCount; column++)
+                            int columnCount = (columnNames != null)? columnNames.Length: sqlDataReader.FieldCount;
+                            object[] cells = new object[columnCount];
+                            for (int i = 0; i < columnCount; i++)
                             {
-                                if (sqlDataReader[column] == DBNull.Value)
-                                    cells[column] = null;
+                                object obj;
+                                if (columnNames != null)
+                                {
+                                    obj = sqlDataReader[columnNames[i]];
+                                }
                                 else
-                                    cells[column] = sqlDataReader[column];
+                                {
+                                    obj = sqlDataReader[i];
+                                };
+                                if (obj == DBNull.Value)
+                                {
+                                    cells[i] = null;
+                                }
+                                else
+                                {
+                                    cells[i] = obj;
+                                }
                             }
                             collection.Add((T)Activator.CreateInstance(typeof(T), cells));
                         }
@@ -79,8 +94,8 @@ namespace SQLDependency.DBConnection
         /// <summary>
         /// Connects and executes sql procedure without returning a value.
         /// </summary>
-        /// <param name="command"> SqlCommand used for query. CommandText and Parameters must be set properly. </param>
-        /// <param name="sqlQueryTimeout"> Timeout used for query. Default value uses value set in constructor. </param>
+        /// <param name="command"> SqlCommand used for query. Only command text and command parameters must be set properly. </param>
+        /// <param name="sqlQueryTimeout"> Timeout in seconds used for query. Default value uses value set in constructor. 0 indicates infinite. Default: -1. </param>
         /// <param name="disposeCommand"> If true command will be disposed after execution. Default: true. </param>
         public void SQLRunNonQueryProcedure(SqlCommand command, int sqlQueryTimeout = 0, bool disposeCommand = true)
         {
@@ -109,8 +124,8 @@ namespace SQLDependency.DBConnection
         /// Prepares SqlCommand for execution.
         /// </summary>
         /// <param name="command"> SqlCommand which values are to be set. </param>
-        /// <param name="connection"> SqlConnection to Be set in command. </param>
-        /// <param name="sqlQueryTimeout"> Timeout used for query. Default value uses value set in constructor. </param>
+        /// <param name="connection"> SqlConnection to be set in command. </param>
+        /// <param name="sqlQueryTimeout"> Timeout in seconds used for query. Default value uses value set in constructor. 0 indicates infinite. Default: -1. </param>
         private void PrepareSQLCommand(SqlCommand command, SqlConnection connection, int sqlQueryTimeout = 0)
         {
             if (command.CommandText.Trim().Contains(" "))
@@ -132,7 +147,7 @@ namespace SQLDependency.DBConnection
         /// <summary>
         /// Repairs SQL bug when a table in parameter is passed to SQL DB.
         /// </summary>
-        /// <param name="sqlparameter"> Sqlparameter for which TypeName need to be deratized. </param>
+        /// <param name="sqlparameter"> Sqlparameter for which TypeName need to be fixed. </param>
         private void RepairSQLBug(SqlParameter sqlparameter)
         {
             if (sqlparameter.SqlDbType != SqlDbType.Structured)

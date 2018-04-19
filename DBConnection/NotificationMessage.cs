@@ -17,12 +17,24 @@ namespace SQLDependency.DBConnection
         /// </summary>
         public DateTime ValidTill { get; }
         /// <summary>
-        /// Message parsed XDocument.
+        /// XDocument containing parsed sql message.
         /// </summary>
         public XDocument Message { get; }
+        /// <summary>
+        /// NotificationMessageError object containing error details.
+        /// </summary>
         public NotificationMessageError Error { get; private set; }
+        /// <summary>
+        /// NotificationData object containing inserted data.
+        /// </summary>
         public NotificationData Inserted { get; }
+        /// <summary>
+        /// NotificationData object containing deleted data.
+        /// </summary>
         public NotificationData Deleted { get; }
+        /// <summary>
+        /// Type of message.
+        /// </summary>
         public NotificationMessageType MessageType { get; private set; } = NotificationMessageType.NotImplementedType;
 
         /// <summary>
@@ -79,6 +91,7 @@ namespace SQLDependency.DBConnection
             }
             base.ProcedureParameters = ProcedureCmd.Parameters;
         }
+
         /// <summary>
         /// Overrides system ToString method to return Raw nessage string.
         /// </summary>
@@ -88,6 +101,10 @@ namespace SQLDependency.DBConnection
             return MessageString;
         }
 
+        /// <summary>
+        /// Adds exception to message and changes messageType to Error.
+        /// </summary>
+        /// <param name="ex"></param>
         public void AddError(Exception ex)
         {
             string error = "<error><number>" + ex.HResult +"</number><severity>99</severity><state>1</state><procedure>ListenerReciveSubscriptions</procedure><linenb></linenb><message>" + ex.Message + "</message></error>";

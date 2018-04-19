@@ -69,28 +69,30 @@ IF NOT EXISTS (
 	END
 
 -- create or recreate login
---DECLARE @V_LoginName SYSNAME = @V_MainName ;
-BEGIN TRANSACTION
-	IF EXISTS (
-		SELECT [server_principals].[name]
-		FROM master.sys.server_principals AS [server_principals]
-		WHERE QUOTENAME( [server_principals].[name] ) = QUOTENAME( @V_LoginName )
-	)
-		BEGIN
+IF LEN(@V_Password) > 0
+	BEGIN
+		BEGIN TRANSACTION
+			IF EXISTS (
+				SELECT [server_principals].[name]
+				FROM master.sys.server_principals AS [server_principals]
+				WHERE QUOTENAME( [server_principals].[name] ) = QUOTENAME( @V_LoginName )
+			)
+				BEGIN
+					SET @V_Cmd = '
+						DROP LOGIN ' + QUOTENAME(@V_LoginName) + ';
+					'
+					EXEC ( @V_Cmd );
+				END
 			SET @V_Cmd = '
-				DROP LOGIN ' + QUOTENAME(@V_LoginName) + ';
-			'
-			EXEC ( @V_Cmd );
-		END
-	SET @V_Cmd = '
-		CREATE LOGIN ' + QUOTENAME(@V_LoginName) + '
-			WITH PASSWORD = ''' + @V_Password + ''', 
-			CHECK_EXPIRATION = OFF, 
-			CHECK_POLICY = OFF,
-			DEFAULT_DATABASE = ' + QUOTENAME(@V_DBName) + ';
-		'
-	EXEC ( @V_Cmd )
-COMMIT TRANSACTION
+				CREATE LOGIN ' + QUOTENAME(@V_LoginName) + '
+					WITH PASSWORD = ''' + @V_Password + ''', 
+					CHECK_EXPIRATION = OFF, 
+					CHECK_POLICY = OFF,
+					DEFAULT_DATABASE = ' + QUOTENAME(@V_DBName) + ';
+				'
+			EXEC ( @V_Cmd )
+		COMMIT TRANSACTION
+	END
 
 -- create shema
 DECLARE @V_SchemaName SYSNAME = @V_MainName;

@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.4</TargetFramework>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+    <PackageId>SQLDependency.DBConnection</PackageId>
+    <Authors>Piotr Wiśniowski</Authors>
+    <Company>Studio Gambit</Company>
+    <Product>SQLDependency.DBConnection</Product>
+    <Description>Allows to subscribe to procedure results and get notified from DB when these results will change.</Description>
+    <PackageLicenseUrl>https://github.com/WisniowskiPiotr/SQLProcedureDependancy/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/WisniowskiPiotr/SQLProcedureDependancy/blob/master/README.md</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/WisniowskiPiotr/SQLProcedureDependancy</RepositoryUrl>
+    <NeutralLanguage>en-001</NeutralLanguage>
+    <PackageTags>SQLDependency SQL Cache Notification Broker Dependency SignalR Procedure</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="AdminDependencyDB.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Data.SqlClient" Version="4.4.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

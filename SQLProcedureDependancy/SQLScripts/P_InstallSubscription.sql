@@ -239,7 +239,9 @@ BEGIN
 					SET @V_Cmd = '
 						CREATE TYPE ' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' AS TABLE (
 						' + @V_ReferencedTableTypeDefinition + '
-						); ' ;
+						); 
+						GRANT EXECUTE ON TYPE::' + QUOTENAME( @V_SchemaName ) + '.' + QUOTENAME(@V_ReferencedTableType) + ' to [Public];
+						' ;
 					EXEC sp_executesql @V_Cmd ;
 				END
 			COMMIT TRANSACTION ;

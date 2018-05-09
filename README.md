@@ -1,4 +1,4 @@
-# SQLProcedureDependancy
+# SQLProcedureDependency
 C# nuget package which allows for getting notifications when results of Sql Server stored procedure will change. This can be used to invalidate cache, get application or user notified about changes made by other users in DB. This is similar to SqlDependency or SqlDependencyEx but allows subscription for results of almost any stored procedure.
 
 ### Usage Example
